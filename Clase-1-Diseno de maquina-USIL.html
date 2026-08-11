@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Síntesis Gráfica de Eslabonamientos — Automatización Agroindustrial</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+<style>
+  :root{
+    --green:#2d6a4f; --green2:#40916c; --green3:#74c69d;
+    --ink:#1b2a23; --muted:#5c6f66; --card:#f6faf7; --line:#e3ece6;
+    --amber:#e07a2f; --red:#c0392b; --ok:#2e8b57;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif; background:#fff; color:var(--ink); line-height:1.55;}
+  .wrap{max-width:960px; margin:0 auto; padding:0 20px;}
+
+  /* Barra superior */
+  header{position:sticky; top:0; background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); z-index:50; backdrop-filter:blur(4px);}
+  .bar{display:flex; align-items:center; justify-content:space-between; padding:12px 20px;}
+  .brand{font-weight:700; color:var(--green); font-size:15px; letter-spacing:.3px;}
+  .counter{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .progress{height:3px; background:var(--line);}
+  .progress > div{height:100%; width:0%; background:linear-gradient(90deg,var(--green),var(--green3)); transition:width .3s;}
+
+  /* Slides */
+  .slide{display:none; padding:34px 20px 110px; animation:fade .35s ease;}
+  .slide.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  h1{font-size:30px; color:var(--green); margin-bottom:6px;}
+  h2{font-size:24px; color:var(--green); margin-bottom:14px;}
+  h3{font-size:18px; color:var(--green2); margin:16px 0 8px;}
+  p{margin:8px 0;}
+  .lead{color:var(--muted); font-size:16px;}
+  .tag{display:inline-block; background:var(--card); color:var(--green); border:1px solid var(--line); padding:3px 10px; border-radius:20px; font-size:12px; margin:2px 4px 2px 0;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin:14px 0;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr;}}
+  ul{margin:8px 0 8px 22px;} li{margin:5px 0;}
+
+  .formula{background:#fff; border:1px solid var(--line); border-left:4px solid var(--green2); padding:12px 16px; border-radius:8px; margin:12px 0; overflow-x:auto;}
+  .note{background:#fff8ef; border-left:4px solid var(--amber); padding:10px 14px; border-radius:6px; margin:12px 0; font-size:14px;}
+  .agro{background:#eef7f0; border-left:4px solid var(--green2); padding:10px 14px; border-radius:6px; margin:12px 0; font-size:14px;}
+
+  /* Controles */
+  .ctrl{margin:12px 0;}
+  .ctrl label{font-size:14px; font-weight:600; color:var(--green2); display:flex; justify-content:space-between;}
+  .ctrl input[type=range]{width:100%; accent-color:var(--green2);}
+  .val{color:var(--ink); font-variant-numeric:tabular-nums;}
+  .btn{background:var(--green); color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:15px; cursor:pointer; transition:.2s;}
+  .btn:hover{background:var(--green2);}
+  .btn.alt{background:#fff; color:var(--green); border:1px solid var(--green2);}
+  .btn.small{padding:6px 12px; font-size:13px;}
+  .rowbtns{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;}
+
+  canvas{background:#fff; border:1px solid var(--line); border-radius:12px; width:100%; height:auto;}
+  .readout{font-size:14px; margin-top:8px;}
+  .pill{display:inline-block; padding:2px 10px; border-radius:16px; font-size:13px; font-weight:600;}
+  .pill.g{background:#e3f2e8; color:var(--green);} .pill.r{background:#fdecea; color:var(--red);} .pill.a{background:#fff3e0; color:var(--amber);}
+
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:14px;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left;}
+  th{background:var(--card); color:var(--green);}
+
+  /* Quiz */
+  .q{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:16px 0;}
+  .q h4{font-size:15px; margin-bottom:10px;}
+  .opts{display:flex; flex-direction:column; gap:8px;}
+  .opt{background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px 14px; cursor:pointer; text-align:left; font-size:14px; transition:.15s;}
+  .opt:hover{border-color:var(--green2);}
+  .opt.correct{background:#e3f2e8; border-color:var(--ok); color:var(--ok); font-weight:600;}
+  .opt.wrong{background:#fdecea; border-color:var(--red); color:var(--red);}
+  .fb{margin-top:10px; font-size:13px; padding:10px 12px; border-radius:8px; display:none;}
+  .fb.show{display:block;} .fb.good{background:#e3f2e8; color:var(--ok);} .fb.bad{background:#fdecea; color:var(--red);}
+  #scoreBox{display:none; text-align:center; padding:24px; border-radius:12px; background:var(--card); border:1px solid var(--line);}
+  #scoreBig{font-size:44px; font-weight:800; color:var(--green);}
+
+  nav{position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,.97); border-top:1px solid var(--line); padding:12px 20px; display:flex; justify-content:space-between; align-items:center; z-index:50;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar wrap">
+    <span class="brand">⚙ Diseño de Máquinas · Síntesis de Eslabonamientos</span>
+    <span class="counter" id="counter">1 / 20</span>
+  </div>
+  <div class="progress"><div id="pbar"></div></div>
+</header>
+
+<!-- ══════════ SLIDE 1: PORTADA ══════════ -->
+<section class="slide active">
+  <div class="wrap">
+    <span class="tag">8° Ciclo</span><span class="tag">Ing. Agroindustrial</span><span class="tag">Automatización de Procesos</span><span class="tag">⏱ 2 horas</span>
+    <h1 style="margin-top:14px;">Síntesis Gráfica de Eslabonamientos</h1>
+    <p class="lead">Diseño de mecanismos articulados para la automatización de procesos agroindustriales — basado en <em>Diseño de Maquinaria</em> (R. Norton), Cap. 2 y 3.</p>
+    <div class="card">
+      <h3>🎯 Logros de la sesión</h3>
+      <ul>
+        <li>Comprender la función de los eslabonamientos en máquinas agroindustriales.</li>
+        <li>Calcular grados de libertad con la ecuación de Kutzbach.</li>
+        <li>Aplicar la condición de Grashof para predecir el comportamiento rotacional.</li>
+        <li>Sintetizar gráficamente mecanismos de 2 y 3 posiciones.</li>
+        <li>Reconocer mecanismos de retorno rápido, curva de acoplador y línea recta.</li>
+      </ul>
+    </div>
+    <div class="agro"><b>🌾 Contexto agroindustrial:</b> los eslabonamientos están presentes en cosechadoras, clasificadoras de fruta, empacadoras, transportadores y máquinas de corte. Diseñarlos bien reduce costos y aumenta la confiabilidad frente a levas y actuadores eléctricos.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 2: REPASO ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>1 · Repaso: eslabones, juntas y cadenas cinemáticas</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>🔗 Eslabón</h3>
+        <p>Cuerpo rígido con al menos dos <b>nodos</b> (puntos de unión).</p>
+        <ul>
+          <li><b>Binario:</b> 2 nodos</li>
+          <li><b>Ternario:</b> 3 nodos</li>
+          <li><b>Cuaternario:</b> 4 nodos</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔩 Junta (par cinemático)</h3>
+        <p>Conexión que permite movimiento relativo entre eslabones.</p>
+        <ul>
+          <li><b>Junta completa (1 GDL):</b> revoluta (pasador) o prismática (corredera).</li>
+          <li><b>Semijunta (2 GDL):</b> rodante-deslizante (ej. leva-seguidor).</li>
+        </ul>
+      </div>
+    </div>
+    <div class="formula">
+      <p style="margin:0 0 6px;"><b>Definiciones clave:</b></p>
+      <ul style="margin-left:20px;">
+        <li><b>Cadena cinemática:</b> ensamble de eslabones y juntas que produce movimiento controlado.</li>
+        <li><b>Mecanismo:</b> cadena cinemática con al menos un eslabón fijo (bancada).</li>
+        <li><b>Máquina:</b> combinación de cuerpos que transmite fuerzas y realiza trabajo.</li>
+      </ul>
+    </div>
+    <div class="note"><b>Manivela</b> = gira 360° pivotada a bancada · <b>Balancín</b> = oscila · <b>Acoplador (biela)</b> = movimiento complejo, no pivotado a bancada.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 3: GDL ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>2 · Grados de libertad (movilidad)</h2>
+    <p>El <b>GDL</b> es el número de entradas necesarias para producir una salida predecible. Para mecanismos planos se usa la <b>ecuación de Kutzbach</b> (modificación de Gruebler):</p>
+    <div class="formula">$$M = 3\,(L-1) - 2J_1 - J_2$$
+    <p style="font-size:13px; color:var(--muted); margin-top:6px;">donde $L$ = número de eslabones, $J_1$ = juntas completas (1 GDL), $J_2$ = semijuntas (2 GDL).</p></div>
+    <div class="grid2">
+      <div class="card"><b>$M > 0$ → Mecanismo</b><p>Se mueve; requiere $M$ actuadores.</p></div>
+      <div class="card"><b>$M = 0$ → Estructura</b><p>No hay movimiento posible.</p></div>
+    </div>
+    <div class="card"><b>$M < 0$ → Estructura precargada:</b> sin movimiento y con esfuerzos internos al ensamblar.</div>
+    <div class="agro"><b>🌾 Ejemplo:</b> una clasificadora de fruta necesita un solo motor ($M=1$) para sincronizar todo el movimiento → buscamos mecanismos de 1 GDL, económicos y simples de controlar.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 4: CALCULADORA GDL ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>2.1 · Laboratorio: calculadora de movilidad</h2>
+    <p>Mueve los deslizadores y observa cómo cambia la movilidad del sistema.</p>
+    <div class="card">
+      <div class="ctrl"><label>Eslabones $L$ <span class="val" id="vL">4</span></label>
+        <input type="range" id="slL" min="2" max="10" value="4"></div>
+      <div class="ctrl"><label>Juntas completas $J_1$ <span class="val" id="vJ1">4</span></label>
+        <input type="range" id="slJ1" min="0" max="14" value="4"></div>
+      <div class="ctrl"><label>Semijuntas $J_2$ <span class="val" id="vJ2">0</span></label>
+        <input type="range" id="slJ2" min="0" max="6" value="0"></div>
+      <div class="readout">Resultado: <span id="gdlOut" class="pill g">M = 1</span> <span id="gdlDesc">→ Mecanismo de 1 GDL</span></div>
+      <div class="formula" style="margin-top:12px;">$$M = 3\,(L-1)-2J_1-J_2 = 3(\,<span id="fL">4</span>-1)-2(<span id="fJ1">4</span>)-(<span id="fJ2">0</span>) = <span id="fM">1</span>$$</div>
+    </div>
+    <div class="note"><b>Pregunta rápida:</b> ¿Cuántas juntas completas necesita un mecanismo de 6 eslabones para tener $M=1$? <em>(Respuesta: $J_1=7$)</em></div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 5: 4 BARRAS ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>3 · El mecanismo de cuatro barras</h2>
+    <p>Es el mecanismo articulado más simple con 1 GDL y el más usado en maquinaria. Consta de: <b>manivela (2)</b>, <b>acoplador (3)</b>, <b>balancín (4)</b> y <b>bancada (1)</b>.</p>
+    <div class="grid2">
+      <div class="card"><h3>Manivela-balancín</h3><p>Entrada gira 360°, salida oscila. Ideal para alimentadores recíprocos.</p></div>
+      <div class="card"><h3>Doble manivela</h3><p>Ambos pivotes giran (eslabón de arrastre). Útil en retorno rápido.</p></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Doble balancín</h3><p>Ambos pivotes oscilan; el acoplador puede girar.</p></div>
+      <div class="card"><h3>Triple balancín</h3><p>Ningún eslabón gira por completo (no Grashof).</p></div>
+    </div>
+    <div class="agro"><b>🌾 Aplicación:</b> en una <b>empacadora de heno</b>, un manivela-balancín convierte el giro continuo del motor en el movimiento oscilante del brazo que comprime el fardo.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 6: GRASHOF ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>4 · Condición de Grashof</h2>
+    <p>Predice si algún eslabón podrá girar 360°, usando solo las longitudes. Sea $S$ el eslabón más corto, $L$ el más largo, y $P$, $Q$ los restantes:</p>
+    <div class="formula">$$S + L \;\leq\; P + Q \quad\Rightarrow\quad \text{Grashof (Clase I): al menos un eslabón gira 360°}$$</div>
+    <table>
+      <tr><th>Condición</th><th>Clase</th><th>Comportamiento</th></tr>
+      <tr><td>$S+L < P+Q$</td><td>I (Grashof)</td><td>Al menos un eslabón gira completamente</td></tr>
+      <tr><td>$S+L > P+Q$</td><td>II (No Grashof)</td><td>Triple balancín: nadie gira 360°</td></tr>
+      <tr><td>$S+L = P+Q$</td><td>III (Especial)</td><td>Puntos de cambio: movimiento indeterminado</td></tr>
+    </table>
+    <div class="formula">
+      <p style="margin-bottom:6px;"><b>Inversiones de Clase I</b> (dependen del eslabón fijo):</p>
+      <ul style="margin-left:20px;">
+        <li>Fijo el eslabón <b>adyacente</b> al más corto → <b>manivela-balancín</b></li>
+        <li>Fijo el eslabón <b>más corto</b> → <b>doble manivela</b></li>
+        <li>Fijo el eslabón <b>opuesto</b> al más corto → <b>doble balancín de Grashof</b></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 7: SIMULADOR 4B ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>4.1 · Simulador interactivo de cuatro barras</h2>
+    <p>Ajusta las longitudes y observa la clasificación de Grashof y el movimiento en tiempo real.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="ctrl"><label>Manivela $a$ <span class="val" id="va">2.0</span></label><input type="range" id="sl-a" min="0.5" max="6" step="0.1" value="2"></div>
+        <div class="ctrl"><label>Acoplador $b$ <span class="val" id="vb">6.0</span></label><input type="range" id="sl-b" min="1" max="9" step="0.1" value="6"></div>
+        <div class="ctrl"><label>Balancín $c$ <span class="val" id="vc">5.0</span></label><input type="range" id="sl-c" min="1" max="9" step="0.1" value="5"></div>
+        <div class="ctrl"><label>Bancada $d$ <span class="val" id="vd">7.0</span></label><input type="range" id="sl-d" min="1" max="9" step="0.1" value="7"></div>
+        <div class="rowbtns">
+          <button class="btn small" id="btnAnim">▶ Animar</button>
+          <button class="btn small alt" id="btnPreset1">Ej. manivela-balancín</button>
+          <button class="btn small alt" id="btnPreset2">Ej. no Grashof</button>
+        </div>
+      </div>
+      <div>
+        <canvas id="cv" width="480" height="360"></canvas>
+        <div class="readout">
+          Clasificación: <span id="gclass" class="pill g">—</span><br>
+          <span id="gdetail" style="font-size:13px; color:var(--muted);"></span><br>
+          <span id="gsums" style="font-size:13px;"></span>
+        </div>
+      </div>
+    </div>
+    <div class="note">El punto <b style="color:var(--amber);">P</b> sobre el acoplador traza la <b>curva de acoplador</b>. Observa cómo cambia la trayectoria al variar las longitudes.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 8: ÁNG. TRANSMISIÓN ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>5 · Condiciones límite: ángulo de transmisión</h2>
+    <p>El <b>ángulo de transmisión $\mu$</b> es el ángulo entre el eslabón de salida y el acoplador. Mide la calidad de transmisión de fuerza:</p>
+    <div class="formula">$$\mu = \arccos\!\left(\frac{b^2+c^2-(\text{diagonal})^2}{2bc}\right) \qquad \text{Óptimo: } \mu=90^\circ \quad\text{Mínimo recomendado: } \mu>40^\circ$$</div>
+    <div class="grid2">
+      <div class="card"><b>$\mu \to 0°$</b><p>Toda la fuerza se vuelve radial → fricción, agarrotamiento, no hay par de salida.</p></div>
+      <div class="card"><b>$\mu \to 90°$</b><p>Toda la fuerza se convierte en par útil en el balancín.</p></div>
+    </div>
+    <div class="formula">
+      <p style="margin-bottom:6px;"><b>Posiciones de agarrotamiento:</b> ocurren cuando dos eslabones móviles quedan <b>colineales</b>. En un triple balancín hay 4; en un manivela-balancín, 2 (limitan el recorrido del balancín).</p>
+    </div>
+    <div class="agro"><b>🌾 Diseño agroindustrial:</b> en una prensa de jugo, un $\mu$ pequeño haría que el motor se sobrecargue justo en el punto de máxima presión. Verifica siempre $\mu_{min}>40°$.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 9: SÍNTESIS ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>6 · ¿Qué es la síntesis?</h2>
+    <p>La <b>síntesis</b> es el proceso de <em>crear</em> un mecanismo que produzca un movimiento deseado (a diferencia del <em>análisis</em>, que estudia un mecanismo ya existente).</p>
+    <div class="grid2">
+      <div class="card"><h3>Síntesis de tipo</h3><p>Elegir <em>qué tipo</em> de mecanismo conviene (eslabonamiento, leva, cilindro…).</p></div>
+      <div class="card"><h3>Síntesis dimensional</h3><p>Determinar las <em>longitudes</em> de los eslabones para lograr el movimiento.</p></div>
+    </div>
+    <div class="formula">
+      <p style="margin-bottom:6px;"><b>Tres tipos de generación:</b></p>
+      <ul style="margin-left:20px;">
+        <li><b>Generación de función:</b> correlacionar entrada ↔ salida (ej. ángulo de manivela ↔ ángulo de balancín).</li>
+        <li><b>Generación de trayectoria:</b> un punto sigue una curva prescrita.</li>
+        <li><b>Generación de movimiento:</b> una línea (eslabón) asume posiciones prescritas, controlando su orientación.</li>
+      </ul>
+    </div>
+    <div class="agro"><b>🌾 Ejemplo agroindustrial:</b>
+      <em>trayectoria</em> → rociador que sigue la forma de una fruta;
+      <em>movimiento</em> → brazo que toma una bandeja y la orienta para llenarla;
+      <em>función</em> → dosificador que relaciona giro del motor con apertura de válvula.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 10: SÍNTESIS 2 POS ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>7 · Síntesis gráfica de 2 posiciones</h2>
+    <h3>Caso A — Salida de balancín (generación de función)</h3>
+    <div class="card">
+      <ol style="margin-left:20px;">
+        <li>Dibujar el balancín $O_4B$ en sus dos posiciones extremas $B_1$, $B_2$ (subtienden el ángulo deseado).</li>
+        <li>Trazar la cuerda $\overline{B_1B_2}$ y extenderla.</li>
+        <li>Elegir el pivote de manivela $O_2$ sobre esa línea.</li>
+        <li>Bisecar $\overline{B_1B_2}$ y trazar un círculo con ese radio centrado en $O_2$.</li>
+        <li>Las intersecciones dan $A_1$, $A_2$ → se obtienen las longitudes de manivela y acoplador.</li>
+      </ol>
+    </div>
+    <h3>Caso B — Salida de acoplador (generación de movimiento)</h3>
+    <div class="card">
+      <ol style="margin-left:20px;">
+        <li>Dibujar el eslabón $CD$ en sus dos posiciones $C_1D_1$, $C_2D_2$.</li>
+        <li>Bisectrices perpendiculares de $\overline{C_1C_2}$ y $\overline{D_1D_2}$ se cortan en el <b>rotopolo</b>.</li>
+        <li>El problema se reduce al Caso A girando alrededor del rotopolo.</li>
+      </ol>
+    </div>
+    <div class="note"><b>Regla de oro:</b> siempre construye un <b>modelo de cartón</b> y verifica que el mecanismo pase de la posición inicial a la final sin agarrotarse, y revisa $\mu$.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 11: SÍNTESIS 3 POS ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>8 · Síntesis gráfica de 3 posiciones</h2>
+    <div class="card">
+      <ol style="margin-left:20px;">
+        <li>Dibujar el eslabón $CD$ en las tres posiciones $C_1D_1$, $C_2D_2$, $C_3D_3$.</li>
+        <li>Bisectrices de $\overline{C_1C_2}$ y $\overline{C_2C_3}$ → su intersección es el pivote fijo $O_2$.</li>
+        <li>Bisectrices de $\overline{D_1D_2}$ y $\overline{D_2D_3}$ → pivote fijo $O_4$.</li>
+        <li>Conectar: $O_2C_1$ = eslabón 2, $O_4D_1$ = eslabón 4, $C_1D_1$ = acoplador.</li>
+        <li>Verificar Grashof, agarrotamientos y añadir una <b>díada motriz</b> si es necesario.</li>
+      </ol>
+    </div>
+    <div class="formula"><b>Díada motriz:</b> cadena de dos barras (manivela + acoplador) que se añade a un mecanismo para limitarlo a las posiciones deseadas. Convierte un doble balancín en un mecanismo de <b>seis barras de Watt</b> impulsado por motor.</div>
+    <div class="card"><h3>Pivotes fijos especificados (inversión)</h3>
+      <p>Si los pivotes $O_2$, $O_4$ están restringidos (p. ej. por el chasis de la máquina), se <b>invierte</b> el problema: se trata la bancada como si fuera el acoplador móvil, se sintetiza, y luego se reinvierte el resultado.</p></div>
+    <div class="agro"><b>🌾 Caso real:</b> en una llenadora, el espacio para los pivotes está limitado por la estructura existente → se usa síntesis con pivotes especificados.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 12: RETORNO RÁPIDO ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>9 · Mecanismos de retorno rápido</h2>
+    <p>La carrera de <b>avance</b> realiza trabajo; la de <b>retorno</b> debe ser lo más rápida posible. Se logra con ángulos desiguales $\alpha$ y $\beta$ de la manivela.</p>
+    <div class="formula">$$TR=\frac{\alpha}{\beta}, \qquad \alpha+\beta=360^\circ, \qquad \delta=\alpha-\beta=180^\circ-\beta$$
+    <p style="font-size:13px; color:var(--muted); margin-top:6px;">$TR$ = relación de tiempo · $\delta$ = ángulo de construcción.</p></div>
+    <div class="card">
+      <div class="ctrl"><label>Relación de tiempo $TR$ (avance : retorno) <span class="val" id="vtr">1 : 1.5</span></label>
+        <input type="range" id="slTR" min="1" max="2.5" step="0.1" value="1.5"></div>
+      <div class="readout">
+        $\alpha$ (avance) = <span id="trA" class="val">144°</span> ·
+        $\beta$ (retorno) = <span id="trB" class="val">216°</span> ·
+        $\delta$ = <span id="trD" class="val">72°</span>
+      </div>
+      <canvas id="cvTR" width="460" height="200"></canvas>
+    </div>
+    <div class="note"><b>Implementaciones:</b> manivela-balancín (hasta $TR\approx1.5$), eslabón de arrastre de seis barras ($TR>2$), y manivela-corredera invertida (limadora/Whitworth).</div>
+    <div class="agro"><b>🌾 Uso agroindustrial:</b> máquinas de corte y cepillado de madera, prensas de compactación de forraje — avance lento cortando, retorno rápido.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 13: CURVA ACOPLADOR ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>10 · Curvas de acoplador</h2>
+    <p>El acoplador tiene <b>movimiento complejo</b>, así que cualquier punto sobre él traza una <b>curva de acoplador</b> (hasta de 6° grado para cuatro barras). Existe una infinidad de puntos y, por tanto, una infinidad de curvas.</p>
+    <div class="grid2">
+      <div class="card"><h3>Cúspide</h3><p>Punto con <b>velocidad instantánea cero</b>. Útil para detener suavemente una pieza (estampado, alimentación).</p></div>
+      <div class="card"><h3>Crúnoda</h3><p>Punto doble donde la curva se cruza a sí misma (lazos).</p></div>
+    </div>
+    <div class="formula">
+      <p style="margin-bottom:6px;"><b>Atlas de Hrones y Nelson:</b> ~7000 curvas de acoplador para mecanismos manivela-balancín de Grashof. Permite seleccionar una geometría que se aproxime a la trayectoria deseada y luego refinarla con software.</p>
+    </div>
+    <div class="agro"><b>🌾 Aplicación:</b> el <b>avance de película</b> de una cámara (gancho que entra, baja y retrocede) se logra con una curva de acoplador con cúspide. En agroindustria: ganchos alimentadores de fruta que "atrapan" sin golpear.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 14: COGNADOS ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>11 · Cognados: teorema de Roberts-Chebyschev</h2>
+    <div class="formula">$$\text{Tres mecanismos planos de pasador distintos trazan la MISMA curva de acoplador.}$$</div>
+    <p>Estos tres mecanismos se llaman <b>cognados</b>. Se construyen con el <b>diagrama de Cayley</b>:</p>
+    <div class="card">
+      <ol style="margin-left:20px;">
+        <li>Alinear los eslabones 2 y 4 con el acoplador.</li>
+        <li>Trazar paralelas a todos los lados del mecanismo original → se forman los otros dos cognados.</li>
+        <li>Reubicar los pivotes: diagrama de Roberts.</li>
+      </ol>
+    </div>
+    <div class="note"><b>¿Para qué?</b> Si encontraste una buena trayectoria pero los pivotes fijos caen en un mal lugar (p. ej. sobre la cinta transportadora), usas un cognado para mover los pivotes a una zona accesible, <b>conservando la misma trayectoria</b>.</div>
+    <div class="formula"><b>Movimiento paralelo:</b> combinando dos cognados se obtiene un mecanismo de seis barras que traslada un eslabón (sin rotación) siguiendo la curva de acoplador — útil para transportar bandejas sin derramar.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 15: LÍNEA RECTA ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>12 · Mecanismos de línea recta</h2>
+    <p>Generan trayectorias rectas (aproximadas o exactas) sin necesidad de correderas — ventajoso donde las guías lineales son caras o difíciles de lubricar.</p>
+    <table>
+      <tr><th>Mecanismo</th><th>Tipo</th><th>Exactitud</th></tr>
+      <tr><td>Watt</td><td>Triple balancín</td><td>Aproximada</td></tr>
+      <tr><td>Roberts</td><td>Triple balancín</td><td>Aproximada (0.04%)</td></tr>
+      <tr><td>Chebyschev</td><td>Doble balancín de Grashof</td><td>Aproximada</td></tr>
+      <tr><td>Hoeken</td><td>Manivela-balancín</td><td>Aproximada + velocidad casi constante</td></tr>
+      <tr><td>Peaucellier</td><td>Ocho barras</td><td><b>Exacta</b></td></tr>
+    </table>
+    <div class="note">Para línea recta <b>exacta</b> con juntas de pasador se necesitan ≥ 6 eslabones. Para la mayoría de aplicaciones basta una aproximación de 4 barras.</div>
+    <div class="agro"><b>🌾 Uso agroindustrial:</b> el mecanismo de <b>Hoeken</b> es ideal para recoger y colocar producto sobre una cinta a velocidad constante; Watt se usó para guiar pistones de máquinas de vapor y hoy guía ejes de suspensión y transporte.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 16: DETENIMIENTO ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>13 · Mecanismos con detenimiento</h2>
+    <p>Un <b>detenimiento</b> es un periodo donde la salida permanece inmóvil mientras la entrada sigue moviéndose — muy común en máquinas de producción.</p>
+    <div class="grid2">
+      <div class="card"><h3>Detenimiento simple</h3><p>Se usa una curva de acoplador con un tramo de arco circular. Un eslabón unido al centro del arco queda casi inmóvil durante ese tramo.</p></div>
+      <div class="card"><h3>Doble detenimiento</h3><p>Curva con dos arcos o dos tramos rectos. La salida se detiene dos veces por ciclo.</p></div>
+    </div>
+    <div class="formula">
+      <p style="margin-bottom:6px;"><b>Ventaja frente a levas:</b> los eslabonamientos son más baratos, robustos y fáciles de fabricar con precisión. <b>Desventaja:</b> el detenimiento es solo <em>aproximado</em> (con ligera "trepidación").</p>
+    </div>
+    <div class="agro"><b>🌾 Caso agroindustrial:</b> una dosificadora de semillas detiene la bandeja mientras cae la semilla, y luego avanza → doble detenimiento con eslabonamiento = solución económica y confiable en ambientes con polvo.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 17: APLICACIONES AGRO ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>14 · Aplicaciones en automatización agroindustrial</h2>
+    <table>
+      <tr><th>Proceso</th><th>Mecanismo típico</th><th>Razón</th></tr>
+      <tr><td>Clasificado de fruta</td><td>Curva de acoplador + cognados</td><td>Trayectoria suave que no daña el producto</td></tr>
+      <tr><td>Empaque / encajado</td><td>Movimiento paralelo (6 barras)</td><td>Traslada bandejas sin rotar ni derramar</td></tr>
+      <tr><td>Alimentación recíproca</td><td>Manivela-balancín</td><td>Giro continuo del motor → oscilación</td></tr>
+      <tr><td>Corte / rebanado</td><td>Retorno rápido</td><td>Corte lento, retorno veloz → productividad</td></tr>
+      <tr><td>Dosificado de semillas</td><td>Doble detenimiento</td><td>Pausa exacta para llenar</td></tr>
+      <tr><td>Cosecha mecánica</td><td>Manivela-corredera / línea recta</td><td>Movimiento de sacudida o de corte</td></tr>
+      <tr><td>Prensado de jugo/forraje</td><td>Agarrotamiento (ventaja mecánica ∞)</td><td>Máxima fuerza en el punto de prensado</td></tr>
+    </table>
+    <div class="agro"><b>Criterio de selección:</b> siempre intenta primero un eslabonamiento de 4 barras (simple y barato). Si no basta, pasa a 6 barras o a leva. Verifica $\mu_{min}$, agarrotamientos y espacio disponible.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 18: RESUMEN ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>15 · Síntesis de la sesión</h2>
+    <div class="card">
+      <ul>
+        <li>📐 <b>Movilidad:</b> $M=3(L-1)-2J_1-J_2$ → buscamos $M=1$ para automatizar con un solo motor.</li>
+        <li>🔄 <b>Grashof:</b> $S+L\leq P+Q$ predice si hay rotación completa; la inversión depende del eslabón fijo.</li>
+        <li>📏 <b>Ángulo de transmisión:</b> mantener $\mu>40°$ para buena transmisión de fuerza.</li>
+        <li>✏️ <b>Síntesis gráfica:</b> bisectrices y rotopolos para 2 y 3 posiciones; siempre validar con modelo físico.</li>
+        <li>⚡ <b>Retorno rápido:</b> $TR=\alpha/\beta$ aumenta la productividad.</li>
+        <li>🌀 <b>Curva de acoplador y cognados:</b> gran variedad de trayectorias; cognados reubican pivotes.</li>
+        <li>📍 <b>Línea recta y detenimientos:</b> soluciones económicas frente a correderas y levas.</li>
+      </ul>
+    </div>
+    <div class="note"><b>Flujo de diseño recomendado:</b> necesidad → investigación → síntesis de tipo → síntesis dimensional → validar (Grashof, $\mu$, agarrotamiento) → modelo → prototipo.</div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 19: AUTOEVALUACIÓN ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>16 · Autoevaluación (5 preguntas)</h2>
+    <p class="lead">Selecciona una opción por pregunta. Recibirás retroalimentación inmediata.</p>
+    <div id="quiz"></div>
+    <div class="rowbtns"><button class="btn" id="btnScore">Ver mi puntaje</button>
+      <button class="btn alt" id="btnReset">Reintentar</button></div>
+    <div id="scoreBox"><div id="scoreBig">0/5</div><p id="scoreMsg"></p></div>
+  </div>
+</section>
+
+<!-- ══════════ SLIDE 20: CIERRE ══════════ -->
+<section class="slide">
+  <div class="wrap">
+    <h2>17 · Cierre y siguientes pasos</h2>
+    <div class="card">
+      <h3>📚 Para profundizar</h3>
+      <ul>
+        <li>Norton, R. <em>Diseño de Maquinaria</em>, Cap. 3 — problemas de síntesis y proyectos.</li>
+        <li>Usar el software <b>FOURBAR</b> (incluido con el texto) para animar y verificar sus diseños.</li>
+        <li>Construir modelos de cartón con tachuelas como pivotes — técnica rápida y poderosa.</li>
+      </ul>
+    </div>
+    <div class="agro"><b>🌾 Reto propuesto:</b> diseña un mecanismo que tome una fruta de una cinta y la coloque suavemente en una bandeja (2 posiciones), verificando Grashof y $\mu$. Presenta un modelo físico la próxima clase.</div>
+    <div class="card" style="text-align:center; margin-top:20px;">
+      <p style="font-size:18px; color:var(--green); font-weight:600;">¡Gracias! El diseño de mecanismos convierte ideas en movimiento. ⚙️🌾</p>
+    </div>
+  </div>
+</section>
+
+<nav>
+  <button class="btn alt" id="prev">← Anterior</button>
+  <span style="font-size:13px; color:var(--muted);">Usa las flechas ← → del teclado</span>
+  <button class="btn" id="next">Siguiente →</button>
+</nav>
+
+<script>
+/* ══════════ NAVEGACIÓN ══════════ */
+const slides=[...document.querySelectorAll('.slide')];
+let cur=0;
+function show(i){
+  slides[cur].classList.remove('active');
+  cur=(i+slides.length)%slides.length;
+  slides[cur].classList.add('active');
+  document.getElementById('counter').textContent=(cur+1)+' / '+slides.length;
+  document.getElementById('pbar').style.width=((cur+1)/slides.length*100)+'%';
+  window.scrollTo(0,0);
+  if(cur===6) startSim();
+}
+document.getElementById('next').onclick=()=>show(cur+1);
+document.getElementById('prev').onclick=()=>show(cur-1);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')show(cur+1);
+  if(e.key==='ArrowLeft')show(cur-1);
+});
+show(0);
+
+/* ══════════ CALCULADORA GDL ══════════ */
+function gdl(){
+  const L=+slL.value, J1=+slJ1.value, J2=+slJ2.value;
+  vL.textContent=L; vJ1.textContent=J1; vJ2.textContent=J2;
+  fL.textContent=L; fJ1.textContent=J1; fJ2.textContent=J2;
+  const M=3*(L-1)-2*J1-J2;
+  fM.textContent=M;
+  const out=document.getElementById('gdlOut'), desc=document.getElementById('gdlDesc');
+  out.textContent='M = '+M;
+  if(M>0){out.className='pill g';desc.textContent='→ Mecanismo ('+M+' GDL)';}
+  else if(M===0){out.className='pill a';desc.textContent='→ Estructura (sin movimiento)';}
+  else{out.className='pill r';desc.textContent='→ Estructura precargada';}
+}
+['slL','slJ1','slJ2'].forEach(id=>document.getElementById(id).addEventListener('input',gdl));
+gdl();
+
+/* ══════════ SIMULADOR CUATRO BARRAS ══════════ */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let theta2=0.7, animating=false, rafId=null, trail=[];
+
+function grashofInfo(a,b,c,d){
+  const arr=[a,b,c,d].sort((x,y)=>x-y);
+  const S=arr[0],L=arr[3],P=arr[1],Q=arr[2];
+  const SL=S+L, PQ=P+Q;
+  const minKey=['a','b','c','d'].reduce((m,k)=>({a,b,c,d})[k]<({a,b,c,d})[m]?k:m,'a');
+  let cls,det;
+  if(SL<PQ){cls='g';det='Grashof (Clase I): rotación completa posible';}
+  else if(SL>PQ){cls='r';det='No Grashof (Clase II): triple balancín';}
+  else{cls='a';det='Caso especial (Clase III): puntos de cambio';}
+  let inv='';
+  if(cls==='g'){
+    inv={a:'Manivela-balancín (GCRR) — la manivela gira 360°',
+         d:'Doble manivela (GCCC) — eslabón de arrastre',
+         b:'Doble balancín de Grashof (GRCR) — el acoplador gira',
+         c:'Balancín-manivela (GRRC)'}[minKey];
+  } else if(cls==='r'){inv='Triple balancín: ningún eslabón gira 360°';}
+  else inv='Doble manivela / manivela-balancín con puntos de cambio';
+  return {SL,PQ,cls,det,inv};
+}
+
+function solve(a,b,c,d,t2){
+  const K1=d/a, K2=d/c, K3=(a*a-b*b+c*c+d*d)/(2*a*c);
+  const A=Math.cos(t2)-K1-K2*Math.cos(t2)+K3;
+  const B=-2*Math.sin(t2);
+  const C=K1-(K2+1)*Math.cos(t2)+K3;
+  let disc=B*B-4*A*C; if(disc<0)return null;
+  const t4=2*Math.atan2(-B-Math.sqrt(disc),2*A);
+  const K4=d/b, K5=(c*c-d*d-a*a-b*b)/(2*a*b);
+  const D=Math.cos(t2)-K1+K4*Math.cos(t2)+K5;
+  const E=-2*Math.sin(t2);
+  const F=K1+(K4-1)*Math.cos(t2)+K5;
+  let d2=E*E-4*D*F; if(d2<0)return null;
+  const t3=2*Math.atan2(-E-Math.sqrt(d2),2*D);
+  return {t3,t4};
+}
+
+function drawSim(){
+  const a=+document.getElementById('sl-a').value, b=+document.getElementById('sl-b').value,
+        c=+document.getElementById('sl-c').value, d=+document.getElementById('sl-d').value;
+  va.textContent=a.toFixed(1); vb.textContent=b.toFixed(1); vc.textContent=c.toFixed(1); vd.textContent=d.toFixed(1);
+  const info=grashofInfo(a,b,c,d);
+  const gc=document.getElementById('gclass');
+  gc.textContent=info.det; gc.className='pill '+info.cls;
+  document.getElementById('gdetail').textContent=info.inv;
+  document.getElementById('gsums').innerHTML=`$S+L=$ ${info.SL.toFixed(2)} &nbsp;·&nbsp; $P+Q=$ ${info.PQ.toFixed(2)}`;
+  if(window.renderMathInElement)renderMathInElement(document.getElementById('gsums'),{delimiters:[{left:'$',right:'$',display:false}]});
+
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const margin=40;
+  const span=a+b+c+d;
+  const scale=(cv.width-2*margin)/span;
+  const ox=(cv.width - d*scale)/2, oy=cv.height*0.62;
+  const P=(x,y)=>[ox+x*scale, oy-y*scale];
+
+  // suelo
+  const [g1x,g1y]=P(0,0), [g2x,g2y]=P(d,0);
+  ctx.strokeStyle='#cfd8d2'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(g1x-15,g1y+12); ctx.lineTo(g2x+15,g2y+12); ctx.stroke();
+
+  const s=solve(a,b,c,d,theta2);
+  if(!s){ ctx.fillStyle='#c0392b'; ctx.font='15px Segoe UI'; ctx.fillText('No ensambla en este ángulo (agarrotamiento)',30,30); return;}
+  const Ax=a*Math.cos(theta2), Ay=a*Math.sin(theta2);
+  const Bx=d+c*Math.cos(s.t4), By=c*Math.sin(s.t4);
+  const [pAx,pAy]=P(Ax,Ay), [pBx,pBy]=P(Bx,By), [pOx,pOy]=P(0,0), [pQx,pQy]=P(d,0);
+
+  // punto P del acoplador (a 1/2 del acoplador, desplazado)
+  const Px=Ax+(Bx-Ax)*0.5 - (By-Ay)*0.35;
+  const Py=Ay+(By-Ay)*0.5 + (Bx-Ax)*0.35;
+  const [ppx,ppy]=P(Px,Py);
+  if(animating){ trail.push([ppx,ppy]); if(trail.length>400)trail.shift(); }
+
+  // trayectoria
+  if(trail.length>1){ ctx.strokeStyle='rgba(224,122,47,.5)'; ctx.lineWidth=1.5; ctx.beginPath();
+    trail.forEach((pt,i)=> i?ctx.lineTo(pt[0],pt[1]):ctx.moveTo(pt[0],pt[1])); ctx.stroke(); }
+
+  // eslabones
+  function link(x1,y1,x2,y2,col,w){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+  link(pOx,pOy,pQx,pQy,'#9aa8a0',5);       // bancada
+  link(pOx,pOy,pAx,pAy,'#2d6a4f',5);       // manivela
+  link(pAx,pAy,pBx,pBy,'#40916c',5);       // acoplador
+  link(pQx,pQy,pBx,pBy,'#74c69d',5);       // balancín
+  link(pAx,pAy,ppx,ppy,'#e07a2f',2);       // brazo punto P
+
+  // juntas
+  function joint(x,y,r,fill){ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='#1b2a23';ctx.lineWidth=1.5;ctx.stroke();}
+  joint(pOx,pOy,6,'#fff'); joint(pQx,pQy,6,'#fff');
+  joint(pAx,pAy,5,'#fff'); joint(pBx,pBy,5,'#fff');
+  joint(ppx,ppy,5,'#e07a2f');
+
+  ctx.fillStyle='#5c6f66'; ctx.font='12px Segoe UI';
+  ctx.fillText('O2',pOx-12,pOy+22); ctx.fillText('O4',pQx+6,pQy+22);
+  ctx.fillText('A',pAx+8,pAy-6); ctx.fillText('B',pBx+8,pBy-6);
+  ctx.fillStyle='#e07a2f'; ctx.fillText('P',ppx+8,ppy-8);
+}
+
+function loop(){ if(animating){theta2+=0.02;} drawSim(); rafId=requestAnimationFrame(loop); }
+function startSim(){ if(!rafId)loop(); }
+
+document.getElementById('btnAnim').onclick=function(){
+  animating=!animating; trail=[];
+  this.textContent=animating?'⏸ Detener':'▶ Animar';
+};
+['sl-a','sl-b','sl-c','sl-d'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{trail=[]; if(!animating)drawSim();}));
+document.getElementById('btnPreset1').onclick=()=>{sl_a.value=2;sl_b.value=6;sl_c.value=5;sl_d.value=7;trail=[];drawSim();};
+document.getElementById('btnPreset2').onclick=()=>{sl_a.value=2;sl_b.value=3;sl_c.value=3;sl_d.value=7;trail=[];drawSim();};
+drawSim();
+
+/* ══════════ RETORNO RÁPIDO ══════════ */
+function trUpdate(){
+  const TR=+document.getElementById('slTR').value;
+  document.getElementById('vtr').textContent='1 : '+TR.toFixed(1);
+  const alpha=360*TR/(1+TR), beta=360-alpha, delta=alpha-beta;
+  trA.textContent=alpha.toFixed(0)+'°'; trB.textContent=beta.toFixed(0)+'°'; trD.textContent=delta.toFixed(0)+'°';
+  const c=document.getElementById('cvTR'), x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height);
+  const cx=120, cy=110, r=75;
+  x.strokeStyle='#e3ece6'; x.lineWidth=1; x.beginPath(); x.arc(cx,cy,r+14,0,7); x.stroke();
+  // sector avance (alpha) en verde, retorno (beta) en ámbar — ángulo medido desde arriba
+  const toRad=d=>(90-d)*Math.PI/180;
+  x.fillStyle='rgba(64,145,108,.75)';
+  x.beginPath(); x.moveTo(cx,cy); x.arc(cx,cy,r,toRad(0),toRad(-alpha),false); x.closePath(); x.fill();
+  x.fillStyle='rgba(224,122,47,.75)';
+  x.beginPath(); x.moveTo(cx,cy); x.arc(cx,cy,r,toRad(-alpha),toRad(-360),false); x.closePath(); x.fill();
+  x.fillStyle='#1b2a23'; x.font='13px Segoe UI';
+  x.fillText('α='+alpha.toFixed(0)+'° (avance)',cx+r+26,cy-30);
+  x.fillText('β='+beta.toFixed(0)+'° (retorno)',cx+r+26,cy+10);
+  x.fillText('ω constante',cx-30,cy+r+28);
+  x.fillStyle='#fff'; x.font='12px Segoe UI'; x.fillText('ω',cx-6,cy-10);
+}
+document.getElementById('slTR').addEventListener('input',trUpdate);
+trUpdate();
+
+/* ══════════ AUTOEVALUACIÓN ══════════ */
+const questions=[
+ {q:'Según la ecuación de Kutzbach $M=3(L-1)-2J_1-J_2$, ¿cuántos grados de libertad tiene un mecanismo de cuatro barras con 4 juntas completas de revoluta?',
+  o:['0','1','2','3'],a:1,
+  ex:'$M=3(4-1)-2(4)=9-8=1$. Un mecanismo de cuatro barras necesita una sola entrada (un motor) para producir una salida predecible.'},
+ {q:'Un mecanismo de cuatro barras tiene longitudes $S=3$, $L=8$, $P=6$, $Q=5$. ¿Cuál es su clasificación de Grashof?',
+  o:['Grashof Clase I','No Grashof Clase II','Grashof caso especial Clase III','Estructura'],a:2,
+  ex:'$S+L=11$ y $P+Q=11$. Como $S+L=P+Q$, es el caso especial de Grashof (Clase III) con puntos de cambio.'},
+ {q:'En un mecanismo de cuatro barras Grashof (Clase I), si se fija el eslabón <b>adyacente</b> al más corto, ¿qué tipo de mecanismo se obtiene?',
+  o:['Doble manivela','Manivela-balancín','Doble balancín','Triple balancín'],a:1,
+  ex:'Al fijar un eslabón adyacente al más corto, el eslabón más corto se convierte en manivela (gira 360°) y el opuesto en balancín: mecanismo manivela-balancín (GCRR).'},
+ {q:'¿Cuál es el valor mínimo recomendado para el ángulo de transmisión $\\mu$ para lograr una buena transmisión de fuerza?',
+  o:['$\\mu>10°$','$\\mu>25°$','$\\mu>40°$','$\\mu>80°$'],a:2,
+  ex:'Se recomienda mantener $\\mu$ por encima de ~40° para un movimiento suave y buena transmisión de fuerza. El óptimo es 90°.'},
+ {q:'Según el teorema de Roberts-Chebyschev, ¿cuántos mecanismos planos de pasador distintos (cognados) trazan la misma curva de acoplador?',
+  o:['2','3','4','Infinitos'],a:1,
+  ex:'El teorema establece que TRES mecanismos diferentes trazan la misma curva de acoplador; se denominan cognados y se construyen con el diagrama de Cayley.'}
+];
+let answers=new Array(questions.length).fill(null);
+const quizEl=document.getElementById('quiz');
+questions.forEach((Q,qi)=>{
+  const div=document.createElement('div'); div.className='q';
+  div.innerHTML='<h4>Pregunta '+(qi+1)+'. '+Q.q+'</h4><div class="opts"></div><div class="fb"></div>';
+  const opts=div.querySelector('.opts'), fb=div.querySelector('.fb');
+  Q.o.forEach((opt,oi)=>{
+    const b=document.createElement('button'); b.className='opt'; b.innerHTML=String.fromCharCode(97+oi)+') '+opt;
+    b.onclick=()=>{
+      answers[qi]=oi;
+      [...opts.children].forEach(c=>c.classList.remove('correct','wrong'));
+      if(oi===Q.a){b.classList.add('correct'); fb.className='fb show good'; fb.innerHTML='✔ Correcto. '+Q.ex;}
+      else{b.classList.add('wrong'); opts.children[Q.a].classList.add('correct'); fb.className='fb show bad'; fb.innerHTML='✘ Incorrecto. '+Q.ex;}
+    };
+    opts.appendChild(b);
+  });
+  quizEl.appendChild(div);
+});
+document.getElementById('btnScore').onclick=()=>{
+  if(answers.includes(null)){alert('Responde las 5 preguntas antes de ver tu puntaje.');return;}
+  const score=answers.filter((a,i)=>a===questions[i].a).length;
+  document.getElementById('scoreBox').style.display='block';
+  document.getElementById('scoreBig').textContent=score+'/5';
+  const msg=document.getElementById('scoreMsg');
+  if(score===5)msg.textContent='¡Excelente! Dominas la síntesis de eslabonamientos. 🌟';
+  else if(score>=3)msg.textContent='Buen trabajo. Repasa los puntos donde fallaste y vuelve a intentarlo.';
+  else msg.textContent='Necesitas reforzar la teoría. Revisa los conceptos de Grashof, Kutzbach y síntesis, e inténtalo de nuevo.';
+};
+document.getElementById('btnReset').onclick=()=>{
+  answers=answers.map(()=>null);
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('correct','wrong'));
+  document.querySelectorAll('.fb').forEach(f=>f.className='fb');
+  document.getElementById('scoreBox').style.display='none';
+};
+</script>
+</body>
+</html>
