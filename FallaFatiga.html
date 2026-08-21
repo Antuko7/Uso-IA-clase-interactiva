@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Fatiga en Ejes - Dashboard Pro</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            padding: 10px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        header { text-align: center; margin-bottom: 8px; }
+        header h1 { color: #00d4ff; font-size: 1.3em; margin-bottom: 2px; }
+        header p { color: #a0a0a0; font-size: 0.85em; }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 320px 1fr;
+            gap: 10px;
+            height: calc(100vh - 70px);
+        }
+
+        .panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel h2 {
+            color: #00d4ff;
+            font-size: 0.95em;
+            margin-bottom: 6px;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 3px;
+        }
+
+        #canvas-container { width: 100%; height: 240px; background: #0a0a1a; border-radius: 6px; flex-grow: 1; }
+        #chart-container { position: relative; height: 240px; width: 100%; flex-grow: 1; }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            overflow-y: auto;
+            padding-right: 3px;
+        }
+        
+        .control-group { background: #0f3460; padding: 6px; border-radius: 5px; }
+        .control-group label { display: block; font-size: 0.75em; color: #a0a0a0; margin-bottom: 3px; }
+        .control-group input[type="range"] { width: 100%; margin-bottom: 2px; }
+        .control-group select {
+            width: 100%; padding: 3px; background: #1a1a2e; color: white;
+            border: 1px solid #00d4ff; border-radius: 3px; font-size: 0.8em;
+        }
+        .val-display { text-align: right; color: #e94560; font-weight: bold; font-size: 0.85em; }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .res-card { background: #0f3460; padding: 6px; border-radius: 5px; text-align: center; }
+        .res-card h3 { font-size: 0.7em; color: #a0a0a0; margin-bottom: 3px; }
+        .res-card .val { font-size: 1.2em; font-weight: bold; color: #00d4ff; }
+        .res-card .unit { font-size: 0.65em; color: #888; }
+
+        .symbols-box {
+            background: #0f3460; padding: 6px; border-radius: 5px; margin-top: 6px;
+            font-size: 0.75em; overflow-y: auto; max-height: 150px;
+        }
+        .symbols-box h4 { color: #e94560; margin-bottom: 4px; font-size: 0.9em; }
+        .symbol-item { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
+        .symbol-item .sym { color: #00d4ff; font-weight: bold; min-width: 40px; }
+        .symbol-item .desc { color: #ccc; flex-grow: 1; margin-left: 8px; }
+
+        .formulas-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .formula-box {
+            background: #0f3460; padding: 6px; border-radius: 5px;
+            text-align: center; min-height: 80px; display: flex; align-items: center; justify-content: center;
+        }
+
+        .btn-group { display: flex; gap: 4px; margin-top: 6px; }
+        button {
+            flex: 1; background: #e94560; color: white; border: none; padding: 5px;
+            border-radius: 4px; cursor: pointer; font-size: 0.8em; font-weight: bold; transition: 0.2s;
+        }
+        button:hover { background: #ff6b6b; }
+
+        .status-bar {
+            margin-top: 6px; padding: 6px; background: #0a0a1a; border-radius: 5px;
+            font-size: 0.8em; border-left: 4px solid #00d4ff;
+        }
+        .info-note {
+            background: #1a3a5e; padding: 5px; border-radius: 4px; font-size: 0.75em;
+            margin-top: 5px; border-left: 3px solid #00d4ff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Análisis de Fatiga en Ejes</h1>
+        <p>Diseño de Máquinas - Ingeniería Agroindustrial | Método de Mott/Norton</p>
+    </header>
+
+    <div class="dashboard">
+        <!-- Columna 1: 3D -->
+        <div class="panel">
+            <h2>Visualización 3D del Eje</h2>
+            <div id="canvas-container"></div>
+            <div class="btn-group">
+                <button onclick="toggleConcentrator()">⚡ Concentrador</button>
+                <button onclick="resetView()">📐 Reset</button>
+            </div>
+            <div class="status-bar" id="statusBar">σ = 0 MPa | N = 0 | Estado: -</div>
+            <div class="info-note">
+                <strong>Nota:</strong> El eje muestra el escalón y el radio de acuerdo (azul). El anillo rojo indica la zona de concentración ($K_t$).
+            </div>
+        </div>
+
+        <!-- Columna 2: Gráficas -->
+        <div class="panel">
+            <h2>Curva de Wöhler (S-N)</h2>
+            <div id="chart-container"><canvas id="snChart"></canvas></div>
+        </div>
+
+        <!-- Columna 3: Controles -->
+        <div class="panel">
+            <h2>Parámetros de Diseño</h2>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>d - Diámetro eje: <span id="dVal" class="val-display">40</span> mm</label>
+                    <input type="range" id="diameter" min="20" max="100" value="40" step="1">
+                </div>
+                <div class="control-group">
+                    <label>r - Radio acuerdo: <span id="rVal" class="val-display">4</span> mm</label>
+                    <input type="range" id="radius" min="1" max="20" value="4" step="0.5">
+                </div>
+                <div class="control-group">
+                    <label>F - Carga transversal: <span id="fVal" class="val-display">3500</span> N</label>
+                    <input type="range" id="force" min="1000" max="10000" value="3500" step="100">
+                </div>
+                <div class="control-group">
+                    <label>M - Momento/Torsión: <span id="mVal" class="val-display">140</span> N·m</label>
+                    <input type="range" id="moment" min="0" max="500" value="140" step="10">
+                </div>
+                <div class="control-group">
+                    <label>Tipo de Esfuerzo (CL)</label>
+                    <select id="stressType">
+                        <option value="flexion">Flexión (CL=1.0)</option>
+                        <option value="torsion">Torsión (CL=0.58)</option>
+                        <option value="axial">Axial (CL=0.70)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Ks - Factor Servicio: <span id="ksVal" class="val-display">1.5</span></label>
+                    <input type="range" id="ks" min="1.0" max="3.0" value="1.5" step="0.1">
+                </div>
+                <div class="control-group">
+                    <label>Material (Sut, Sy)</label>
+                    <select id="material">
+                        <option value="1040">AISI 1040 (620, 415 MPa)</option>
+                        <option value="4140">AISI 4140 (1000, 800 MPa)</option>
+                        <option value="1020">AISI 1020 (470, 350 MPa)</option>
+                        <option value="4340">AISI 4340 (1200, 950 MPa)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Acabado (Cs)</label>
+                    <select id="finish">
+                        <option value="pulido">Pulido (0.95)</option>
+                        <option value="maquinado" selected>Maquinado (0.85)</option>
+                        <option value="laminado">Laminado (0.70)</option>
+                        <option value="forjado">Forjado (0.50)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="info-note">
+                <strong>Ks (Factor de Servicio):</strong> Multiplica la carga para simular impactos (piedras, atascos). Típico en agro: 1.5 a 2.5.
+            </div>
+        </div>
+
+        <!-- Fila inferior: Fórmulas, Resultados y Símbolos -->
+        <div class="panel" style="grid-column: 1 / -1; height: auto; flex-direction: row; gap: 15px;">
+            <div style="flex: 1.2;">
+                <h2>Fórmulas en Tiempo Real</h2>
+                <div class="formulas-row">
+                    <div class="formula-box" id="f1"></div>
+                    <div class="formula-box" id="f2"></div>
+                    <div class="formula-box" id="f3"></div>
+                    <div class="formula-box" id="f4"></div>
+                </div>
+            </div>
+            <div style="flex: 1;">
+                <h2>Resultados</h2>
+                <div class="results-grid">
+                    <div class="res-card"><h3>Se' (MPa)</h3><div class="val" id="resSePrime">310</div></div>
+                    <div class="res-card"><h3>Se (MPa)</h3><div class="val" id="resSe">186</div></div>
+                    <div class="res-card"><h3>Kt</h3><div class="val" id="resKt">1.85</div></div>
+                    <div class="res-card"><h3>σ_max (MPa)</h3><div class="val" id="resSigma">89</div></div>
+                    <div class="res-card"><h3>N (Seg.)</h3><div class="val" id="resN">2.09</div></div>
+                    <div class="res-card"><h3>Vida</h3><div class="val" id="resLife">∞</div></div>
+                </div>
+            </div>
+            <div style="flex: 0.8;">
+                <h2>Símbolos</h2>
+                <div class="symbols-box">
+                    <div class="symbol-item"><span class="sym">d, r</span><span class="desc">Diámetro, Radio acuerdo</span></div>
+                    <div class="symbol-item"><span class="sym">F, M</span><span class="desc">Carga, Momento</span></div>
+                    <div class="symbol-item"><span class="sym">CL</span><span class="desc">Factor de carga</span></div>
+                    <div class="symbol-item"><span class="sym">Ks</span><span class="desc">Factor de servicio</span></div>
+                    <div class="symbol-item"><span class="sym">Sut, Sy</span><span class="desc">Resistencias material</span></div>
+                    <div class="symbol-item"><span class="sym">Se', Se</span><span class="desc">Límites de fatiga</span></div>
+                    <div class="symbol-item"><span class="sym">Kt</span><span class="desc">Concentración esfuerzo</span></div>
+                    <div class="symbol-item"><span class="sym">σ, τ</span><span class="desc">Esfuerzo normal/cortante</span></div>
+                    <div class="symbol-item"><span class="sym">N</span><span class="desc">Factor de seguridad</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let scene, camera, renderer, controls, shaftGroup, stressRing, arrowLeft, arrowRight;
+        let snChart;
+        let showConcentrator = false;
+        let currentStressRatio = 0;
+
+        const materials = {
+            '1040': { Sut: 620, Sy: 415 }, '4140': { Sut: 1000, Sy: 800 },
+            '1020': { Sut: 470, Sy: 350 }, '4340': { Sut: 1200, Sy: 950 }
+        };
+        const surfaceFactors = { 'pulido': 0.95, 'maquinado': 0.85, 'laminado': 0.70, 'forjado': 0.50 };
+        const loadFactors = { 'flexion': 1.0, 'torsion': 0.58, 'axial': 0.70 };
+
+        window.onload = function() {
+            initThreeJS();
+            initChart();
+            updateAnalysis();
+            setupListeners();
+            animate();
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a1a);
+
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(150, 100, 150);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(100, 100, 100);
+            scene.add(dirLight);
+
+            // Grupo para el eje escalonado
+            shaftGroup = new THREE.Group();
+            scene.add(shaftGroup);
+
+            // Flechas de carga
+            const arrowMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+            const arrowGeom = new THREE.ConeGeometry(5, 15, 16);
+            
+            arrowLeft = new THREE.Mesh(arrowGeom, arrowMat);
+            scene.add(arrowLeft);
+
+            arrowRight = new THREE.Mesh(arrowGeom, arrowMat);
+            scene.add(arrowRight);
+
+            // Inicializar geometría del eje
+            updateShaftGeometry(40, 4);
+        }
+
+        // Función para crear el eje escalonado con radio de acuerdo visible
+        function updateShaftGeometry(d, r) {
+            // Limpiar grupo del eje
+            while(shaftGroup.children.length > 0){ 
+                shaftGroup.remove(shaftGroup.children[0]); 
+            }
+
+            const L1 = 100; // Longitud sección grande
+            const L2 = 100; // Longitud sección pequeña
+            
+            // Diámetro grande visual (D = 1.5 * d)
+            const D = d * 1.5; 
+            // El radio visual no puede exceder la mitad de la diferencia de diámetros
+            const r_visual = Math.min(r, (D - d) / 2); 
+
+            const ratio = currentStressRatio || 0;
+            const rColor = Math.min(ratio * 1.5, 1);
+            const gColor = Math.max(1 - ratio * 1.5, 0);
+            const shaftMat = new THREE.MeshPhongMaterial({ 
+                color: new THREE.Color(rColor, gColor, 0.2), 
+                emissive: new THREE.Color(rColor * 0.4, gColor * 0.1, 0),
+                shininess: 100 
+            });
+
+            // 1. Sección grande (izquierda)
+            const geom1 = new THREE.CylinderGeometry(D/2, D/2, L1, 32);
+            const mesh1 = new THREE.Mesh(geom1, shaftMat);
+            mesh1.rotation.z = Math.PI / 2;
+            mesh1.position.x = -L2 / 2;
+            shaftGroup.add(mesh1);
+
+            // 2. Sección pequeña (derecha)
+            const geom2 = new THREE.CylinderGeometry(d/2, d/2, L2, 32);
+            const mesh2 = new THREE.Mesh(geom2, shaftMat);
+            mesh2.rotation.z = Math.PI / 2;
+            mesh2.position.x = L1 / 2;
+            shaftGroup.add(mesh2);
+
+
+            // 3. Radio de acuerdo visual (Fillet) - Color celeste
+            if (r_visual > 0.5) {
+                // CORRECCIÓN 1: Usamos Math.PI * 2 para dibujar un anillo completo (360°)
+                // Radio principal = d/2 (radio del eje pequeño), Tubo = r_visual (grosor del filete)
+                const filletGeom = new THREE.TorusGeometry(d/2, r_visual, 16, 64, Math.PI * 2);
+                const filletMat = new THREE.MeshPhongMaterial({ color: 0x00d4ff, emissive: 0x004455 });
+                
+                const filletMesh = new THREE.Mesh(filletGeom, filletMat);
+                filletMesh.position.set(0, 0, 0); // Exactamente en la transición (centro)
+                
+                // CORRECCIÓN 2: Rotación para que envuelva el eje (que está acostado en el eje X)
+                filletMesh.rotation.y = Math.PI / 2; 
+                shaftGroup.add(filletMesh);
+            }
+
+            // 4. Anillo de concentración de esfuerzos (Rojo, en la transición)
+            const ringGeom = new THREE.TorusGeometry(d/2 + 1, 1.5, 16, 50);
+            const ringMat = new THREE.MeshPhongMaterial({ 
+                color: 0xff0000, 
+                emissive: 0x550000,
+                transparent: true,
+                opacity: 0.8
+            });
+            stressRing = new THREE.Mesh(ringGeom, ringMat);
+            stressRing.rotation.y = Math.PI / 2;
+            stressRing.position.x = 0; // Exactamente en la transición
+            shaftGroup.add(stressRing);
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('snChart').getContext('2d');
+            snChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Curva S-N',
+                        data: generateSNData(620),
+                        borderColor: '#00d4ff', backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        fill: true, tension: 0.4, pointRadius: 0
+                    }, {
+                        label: 'Límite Fatiga Se',
+                        data: [], borderColor: '#e94560', borderDash: [5, 5], pointRadius: 0, fill: false
+                    }, {
+                        label: 'Punto Operación',
+                        data: [], backgroundColor: '#ffcc00', pointRadius: 8, showLine: false
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { type: 'logarithmic', min: 100, max: 10000000, title: { display: true, text: 'Ciclos N', color: '#aaa' }, ticks: { color: '#aaa' } },
+                        y: { title: { display: true, text: 'Esfuerzo MPa', color: '#aaa' }, ticks: { color: '#aaa' } }
+                    },
+                    plugins: { legend: { labels: { color: '#fff' } } }
+                }
+            });
+        }
+
+        function generateSNData(Sut) {
+            const data = [];
+            const Se = 0.5 * Sut; // Límite de fatiga
+            
+            for (let N = 100; N <= 10000000; N *= 1.1) {
+                let S;
+                if (N <= 1000) {
+                    S = Sut * Math.pow(N / 1000, -0.08);
+                } else if (N <= 1000000) {
+                    const logN = Math.log10(N);
+                    const logN1 = Math.log10(1000);
+                    const logN2 = Math.log10(1000000);
+                    const t = (logN - logN1) / (logN2 - logN1);
+                    const S1 = Sut * Math.pow(1000/1000, -0.08);
+                    S = S1 + (Se - S1) * t;
+                } else {
+                    S = Se;
+                }
+                data.push({ x: N, y: S });
+            }
+            return data;
+        } 
+
+        function updateAnalysis() {
+            const d = parseFloat(document.getElementById('diameter').value);
+            const r = parseFloat(document.getElementById('radius').value);
+            const F = parseFloat(document.getElementById('force').value);
+            const M_ext = parseFloat(document.getElementById('moment').value);
+            const stressType = document.getElementById('stressType').value;
+            const Ks = parseFloat(document.getElementById('ks').value);
+            const matKey = document.getElementById('material').value;
+            const finKey = document.getElementById('finish').value;
+
+            const Sut = materials[matKey].Sut;
+            const Sy = materials[matKey].Sy;
+            const Cs = surfaceFactors[finKey];
+            const CL = loadFactors[stressType];
+            
+            const M_F = (F * 200) / 4; // Longitud fija de 200mm para cálculo
+            const M_total = M_ext * 1000 + M_F; 
+            
+            const SePrime = 0.5 * Sut;
+            const CG = 0.85; 
+            const CT = 1.0; 
+            const CR = 0.814; 
+            const Se = SePrime * CL * CG * Cs * CT * CR;
+            
+            const Kt0 = 3.0;
+            const r_d = r / d;
+            const Kt = 1 + (Kt0 - 1) * Math.exp(-r_d * 8);
+            
+            let stress = 0;
+            let stressSymbol = '\\sigma';
+            if (stressType === 'flexion') {
+                stress = (32 * M_total) / (Math.PI * Math.pow(d, 3)) * Kt * Ks;
+                stressSymbol = '\\sigma';
+            } else if (stressType === 'torsion') {
+                stress = (16 * M_total) / (Math.PI * Math.pow(d, 3)) * Kt * Ks;
+                stressSymbol = '\\tau';
+            } else if (stressType === 'axial') {
+                stress = (4 * F) / (Math.PI * Math.pow(d, 2)) * Kt * Ks;
+                stressSymbol = '\\sigma';
+            }
+            
+            const sigma_a = stress / 2;
+            const sigma_m = stress / 2;
+            const N = 1 / ((sigma_a / Se) + (sigma_m / Sut));
+            
+            let life = '∞';
+            if (stress > Se) {
+                const b = -Math.log10(Sut / Se) / 3;
+                const a = Math.pow(1000, b) * Sut;
+                life = Math.round(Math.pow(stress / a, 1 / b)).toLocaleString();
+            }
+
+            document.getElementById('dVal').textContent = d;
+            document.getElementById('rVal').textContent = r;
+            document.getElementById('fVal').textContent = F;
+            document.getElementById('mVal').textContent = M_ext;
+            document.getElementById('ksVal').textContent = Ks.toFixed(1);
+            
+            document.getElementById('resSePrime').textContent = SePrime.toFixed(0);
+            document.getElementById('resSe').textContent = Se.toFixed(0);
+            document.getElementById('resKt').textContent = Kt.toFixed(2);
+            document.getElementById('resSigma').textContent = stress.toFixed(1);
+            document.getElementById('resN').textContent = N.toFixed(2);
+            document.getElementById('resLife').textContent = life;
+
+            const ratio = stress / Se;
+            let statusText = `${stressSymbol} = ${stress.toFixed(1)} MPa | N = ${N.toFixed(2)} | `;
+            if (N < 1.5) statusText += '⚠️ PELIGRO';
+            else if (N < 2.0) statusText += '⚡ PRECAUCIÓN';
+            else statusText += '✅ SEGURO';
+            document.getElementById('statusBar').textContent = statusText;
+
+            renderDynamicFormulas(SePrime, CL, CG, Cs, CT, CR, Se, Kt, r_d, d, M_total, F, stress, stressSymbol, Ks, sigma_a, sigma_m, Sut, N);
+
+            update3DVisuals(stress, Se, Kt, F, M_ext, d, r, stressType);
+            updateChart(Se, stress);
+        }
+
+        function renderDynamicFormulas(SePrime, CL, CG, Cs, CT, CR, Se, Kt, r_d, d, M_total, F, stress, stressSymbol, Ks, sigma_a, sigma_m, Sut, N) {
+            const fmt = (n, dec=2) => n.toFixed(dec);
+            
+            const eq1 = `S_e = S_e' \\cdot C_L \\cdot C_G \\cdot C_S \\cdot C_T \\cdot C_R`;
+            const eq1_val = `S_e = ${fmt(SePrime,0)} \\cdot ${fmt(CL)} \\cdot ${fmt(CG)} \\cdot ${fmt(Cs)} \\cdot ${fmt(CT)} \\cdot ${fmt(CR,3)} = \\mathbf{${fmt(Se,1)} \\text{ MPa}}`;
+            katex.render(`${eq1} \\\\ ${eq1_val}`, document.getElementById('f1'), { displayMode: true });
+
+            const eq2 = `K_t = 1 + (K_{t0}-1) e^{-8(r/d)}`;
+            const eq2_val = `K_t = 1 + (2.0) e^{-8(${fmt(r_d,2)})} = \\mathbf{${fmt(Kt,2)}}`;
+            katex.render(`${eq2} \\\\ ${eq2_val}`, document.getElementById('f2'), { displayMode: true });
+
+            let eq3 = '';
+            if (stressSymbol === '\\sigma' && M_total > 0 && F === 0) {
+                 eq3 = `${stressSymbol} = \\frac{32 M}{\\pi d^3} K_t K_s`;
+            } else if (stressSymbol === '\\tau') {
+                 eq3 = `${stressSymbol} = \\frac{16 M}{\\pi d^3} K_t K_s`;
+            } else {
+                 eq3 = `${stressSymbol} = \\frac{4 F}{\\pi d^2} K_t K_s \\text{ (Axial)}`;
+            }
+            const eq3_val = `${stressSymbol}_{max} = \\mathbf{${fmt(stress,1)} \\text{ MPa}}`;
+            katex.render(`${eq3} \\\\ ${eq3_val}`, document.getElementById('f3'), { displayMode: true });
+
+            const eq4 = `\\frac{1}{N} = \\frac{${stressSymbol}_a}{S_e} + \\frac{${stressSymbol}_m}{S_{ut}}`;
+            const eq4_val = `N = \\frac{1}{\\frac{${fmt(sigma_a,1)}}{${fmt(Se,0)}} + \\frac{${fmt(sigma_m,1)}}{${fmt(Sut,0)}}} = \\mathbf{${fmt(N,2)}}`;
+            katex.render(`${eq4} \\\\ ${eq4_val}`, document.getElementById('f4'), { displayMode: true });
+        }
+
+        function update3DVisuals(stress, Se, Kt, F, M_ext, d, r, stressType) {
+            currentStressRatio = Math.min(stress / Se, 1.5);
+            
+            // 1. Actualizar geometría del eje escalonado con el nuevo diámetro y radio
+            updateShaftGeometry(d, r);
+
+            // 2. Actualizar color del material del eje según el esfuerzo
+            const rColor = Math.min(currentStressRatio * 1.5, 1);
+            const gColor = Math.max(1 - currentStressRatio * 1.5, 0);
+            const color = new THREE.Color(rColor, gColor, 0.2);
+            const emissive = new THREE.Color(rColor * 0.4, gColor * 0.1, 0);
+            
+            shaftGroup.children.forEach(child => {
+                if (child.material && child !== stressRing && child.material.color.getHex() !== 0x00d4ff) {
+                    child.material.color.copy(color);
+                    child.material.emissive.copy(emissive);
+                }
+            });
+
+            // 3. Visibilidad y escala del anillo de concentración
+            if (showConcentrator) {
+                stressRing.visible = true;
+                const ktScale = 1 + (Kt - 1) * 0.3;
+                stressRing.scale.set(ktScale, ktScale, 1);
+                stressRing.material.emissive.setRGB(currentStressRatio * 0.8, 0, 0);
+                stressRing.material.opacity = 0.9;
+            } else {
+                stressRing.visible = false;
+            }
+
+            // 4. Posición de las flechas según el Tipo de Esfuerzo
+            const scale = d / 40; 
+            
+            if (stressType === 'flexion') {
+                arrowLeft.visible = true;
+                arrowRight.visible = true;
+                arrowLeft.position.set(-100 * scale, 30 * scale, 0);
+                arrowLeft.rotation.set(0, 0, Math.PI); 
+                arrowRight.position.set(100 * scale, -30 * scale, 0);
+                arrowRight.rotation.set(0, 0, 0); 
+                
+                const arrowScale = (F / 3500 + M_ext / 140) / 2;
+                arrowLeft.scale.set(arrowScale, arrowScale, arrowScale);
+                arrowRight.scale.set(arrowScale, arrowScale, arrowScale);
+                
+            } else if (stressType === 'torsion') {
+                arrowLeft.visible = true;
+                arrowRight.visible = true;
+                arrowLeft.position.set(-100 * scale, 0, 25 * scale);
+                arrowLeft.rotation.set(Math.PI / 2, 0, 0); 
+                arrowRight.position.set(100 * scale, 0, -25 * scale);
+                arrowRight.rotation.set(-Math.PI / 2, 0, 0); 
+                
+                const arrowScale = Math.max(0.5, M_ext / 140);
+                arrowLeft.scale.set(arrowScale, arrowScale, arrowScale);
+                arrowRight.scale.set(arrowScale, arrowScale, arrowScale);
+                
+            } else if (stressType === 'axial') {
+                arrowLeft.visible = true;
+                arrowRight.visible = true;
+                arrowLeft.position.set(-125 * scale, 0, 0);
+                arrowLeft.rotation.set(0, 0, Math.PI / 2); 
+                arrowRight.position.set(125 * scale, 0, 0);
+                arrowRight.rotation.set(0, 0, -Math.PI / 2); 
+                
+                const arrowScale = Math.max(0.5, F / 3500);
+                arrowLeft.scale.set(arrowScale, arrowScale, arrowScale);
+                arrowRight.scale.set(arrowScale, arrowScale, arrowScale);
+            }
+        }
+
+        function updateChart(Se, stress) {
+            snChart.data.datasets[1].data = [{x: 100, y: Se}, {x: 10000000, y: Se}];
+            snChart.data.datasets[2].data = [{x: 1000000, y: stress}];
+            snChart.update();
+        }
+
+        function setupListeners() {
+            ['diameter', 'radius', 'force', 'moment', 'ks', 'stressType', 'material', 'finish'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateAnalysis);
+            });
+        }
+
+        function toggleConcentrator() {
+            showConcentrator = !showConcentrator;
+            updateAnalysis();
+        }
+
+        function resetView() {
+            camera.position.set(150, 100, 150);
+            controls.reset();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (stressRing && stressRing.visible) {
+                stressRing.rotation.x += 0.02;
+                stressRing.rotation.z += 0.01;
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+    </script>
+</body>
+</html>
