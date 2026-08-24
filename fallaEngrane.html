@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fatiga Superficial en Engranajes - Cargas Fluctuantes</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 10px;
+            min-height: 100vh;
+        }
+        
+        header { 
+            text-align: center; 
+            margin-bottom: 8px; 
+            background: rgba(0, 212, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        header h1 { color: #00d4ff; font-size: 1.4em; margin-bottom: 4px; }
+        header p { color: #a0a0a0; font-size: 0.85em; }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 0.8fr;
+            grid-template-rows: 380px auto;
+            gap: 10px;
+        }
+
+        .panel {
+            background: rgba(22, 33, 62, 0.9);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h2 {
+            color: #00d4ff;
+            font-size: 1em;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #e94560;
+            padding-bottom: 5px;
+        }
+
+        #canvas-container { 
+            width: 100%; 
+            height: 300px; 
+            background: #0a0a1a; 
+            border-radius: 6px; 
+        }
+        
+        #chart-container { 
+            position: relative; 
+            height: 280px; 
+            width: 100%; 
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .control-group { 
+            background: #0f3460; 
+            padding: 8px; 
+            border-radius: 5px;
+            border-left: 3px solid #00d4ff;
+        }
+        .control-group label { 
+            display: block; 
+            font-size: 0.75em; 
+            color: #a0a0a0; 
+            margin-bottom: 4px; 
+        }
+        .control-group input[type="range"] { 
+            width: 100%; 
+            margin-bottom: 3px; 
+        }
+        .control-group select {
+            width: 100%; 
+            padding: 4px; 
+            background: #1a1a2e; 
+            color: white;
+            border: 1px solid #00d4ff; 
+            border-radius: 3px; 
+            font-size: 0.8em;
+        }
+        .val-display { 
+            text-align: right; 
+            color: #e94560; 
+            font-weight: bold; 
+            font-size: 0.9em; 
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .result-card { 
+            background: #0f3460; 
+            padding: 10px; 
+            border-radius: 5px; 
+            text-align: center;
+            border-top: 3px solid #00d4ff;
+        }
+        .result-card h3 { 
+            font-size: 0.75em; 
+            color: #a0a0a0; 
+            margin-bottom: 5px; 
+        }
+        .result-card .val { 
+            font-size: 1.3em; 
+            font-weight: bold; 
+            color: #00d4ff; 
+        }
+        .result-card .unit { 
+            font-size: 0.7em; 
+            color: #888; 
+        }
+        .result-card.critical {
+            border-top-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+        }
+        .result-card.critical .val {
+            color: #e94560;
+        }
+        .result-card.warning {
+            border-top-color: #f1c40f;
+            background: rgba(241, 196, 15, 0.2);
+        }
+        .result-card.warning .val {
+            color: #f1c40f;
+        }
+
+        .formula-box {
+            background: #0f3460; 
+            padding: 10px; 
+            border-radius: 5px;
+            margin: 6px 0;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-group { 
+            display: flex; 
+            gap: 6px; 
+            margin-top: 8px; 
+        }
+        
+        button {
+            flex: 1; 
+            background: #e94560; 
+            color: white; 
+            border: none; 
+            padding: 8px;
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 0.85em; 
+            font-weight: bold; 
+            transition: all 0.3s;
+        }
+        
+        button:hover { 
+            background: #ff6b6b; 
+            transform: translateY(-2px);
+        }
+        
+        button.active {
+            background: #00d4ff;
+        }
+
+        .status-bar {
+            margin-top: 8px; 
+            padding: 8px; 
+            background: #0a0a1a; 
+            border-radius: 5px;
+            font-size: 0.85em; 
+            border-left: 4px solid #00d4ff;
+        }
+        
+        .status-bar.critical {
+            border-left-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+        }
+        
+        .status-bar.warning {
+            border-left-color: #f1c40f;
+            background: rgba(241, 196, 15, 0.2);
+        }
+
+        .info-note {
+            background: rgba(0, 212, 255, 0.1); 
+            padding: 6px; 
+            border-radius: 4px; 
+            font-size: 0.75em;
+            margin-top: 6px; 
+            border-left: 3px solid #00d4ff;
+        }
+
+        .pitting-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 2px;
+            background: #2ecc71;
+        }
+
+        .pitting-indicator.damage {
+            background: #e94560;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>⚙️ Fatiga Superficial en Engranajes con Cargas Fluctuantes</h1>
+        <p>Análisis de Contacto Hertziano y Pitting - Método AGMA/Norton</p>
+    </header>
+
+    <div class="dashboard">
+        <!-- Panel 1: Visualización 3D -->
+        <div class="panel">
+            <h2>🎯 Visualización 3D - Contacto de Dientes</h2>
+            <div id="canvas-container"></div>
+            <div class="btn-group">
+                <button onclick="toggleRotation()" id="btnRotate">▶ Rotar</button>
+                <button onclick="toggleFluctuation()" id="btnFluct">〰 Carga Fluctuante</button>
+                <button onclick="resetView()">🔄 Reset</button>
+            </div>
+            <div class="status-bar" id="statusBar">
+                σc = 0 MPa | Ciclos: 0 | Estado: Sin carga
+            </div>
+            <div class="info-note">
+                <strong>Visualización:</strong> Los engranajes cambian de color según el daño acumulado.
+            </div>
+        </div>
+
+        <!-- Panel 2: Gráficas -->
+        <div class="panel">
+            <h2>📈 Análisis de Fatiga y Cargas</h2>
+            <div id="chart-container">
+                <canvas id="fatigueChart"></canvas>
+            </div>
+            <div style="margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div class="result-card" id="damageCard">
+                    <h3>Daño Acumulado</h3>
+                    <div class="val" id="damagePercent">0%</div>
+                    <div style="margin-top: 5px;">
+                        <span class="pitting-indicator" id="p1"></span>
+                        <span class="pitting-indicator" id="p2"></span>
+                        <span class="pitting-indicator" id="p3"></span>
+                        <span class="pitting-indicator" id="p4"></span>
+                        <span class="pitting-indicator" id="p5"></span>
+                    </div>
+                </div>
+                <div class="result-card" id="safetyCard">
+                    <h3>Factor de Seguridad</h3>
+                    <div class="val" id="safetyFactor">∞</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 3: Controles -->
+        <div class="panel">
+            <h2>⚙️ Parámetros de Carga</h2>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>Wt - Carga Tangencial: <span id="wtVal" class="val-display">1000</span> N</label>
+                    <input type="range" id="tangentialLoad" min="500" max="5000" value="1000" step="100">
+                </div>
+                
+                <div class="control-group">
+                    <label>Ko - Factor Sobrecarga: <span id="koVal" class="val-display">1.5</span></label>
+                    <input type="range" id="overloadFactor" min="1.0" max="3.0" value="1.5" step="0.1">
+                </div>
+                
+                <div class="control-group">
+                    <label>Velocidad n: <span id="speedVal" class="val-display">1000</span> rpm</label>
+                    <input type="range" id="speed" min="100" max="5000" value="1000" step="100">
+                </div>
+                
+                <div class="control-group">
+                    <label>Material Engrane</label>
+                    <select id="material">
+                        <option value="steel">Acero AISI 4140</option>
+                        <option value="cast">Hierro Fundido</option>
+                        <option value="bronze">Bronce</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Calidad Superficie</label>
+                    <select id="surface">
+                        <option value="polished">Pulida (Cf=0.8)</option>
+                        <option value="machined" selected>Maquinada (Cf=1.0)</option>
+                        <option value="rough">Rugosa (Cf=1.3)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 4: Fatiga por Carga Cíclica -->
+        <div class="panel">
+            <h2>🔄 Fatiga por Carga Cíclica</h2>
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>Frecuencia de Carga: <span id="freqFatigaVal" class="val-display">10</span> Hz</label>
+                    <input type="range" id="freqFatiga" min="1" max="100" value="10" step="1">
+                </div>
+                <div class="control-group">
+                    <label>Amplitud de Carga: <span id="ampFatigaVal" class="val-display">50</span>%</label>
+                    <input type="range" id="ampFatiga" min="10" max="100" value="50" step="5">
+                </div>
+            </div>
+            <div style="margin-top: 10px; height: 200px;">
+                <canvas id="fatigueChart2"></canvas>
+            </div>
+            <div class="status-bar" id="fatigueStatus">
+                Ciclos aplicados: 0 | Daño acumulado: 0%
+            </div>
+            <div class="btn-group" style="margin-top: 8px;">
+                <button onclick="startFatigueSimulation()" id="btnFatigaStart">▶ Iniciar Fatiga</button>
+                <button onclick="resetFatigue()">🔄 Reset Fatiga</button>
+            </div>
+        </div>
+
+        <!-- Panel 5: Fórmulas -->
+        <div class="panel" style="grid-column: 1 / -1;">
+            <h2>📐 Ecuaciones de Contacto Hertziano y Goodman</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div>
+                    <h3 style="color: #e94560; font-size: 0.85em; margin-bottom: 5px;">Esfuerzo de Contacto (Hertz)</h3>
+                    <div class="formula-box" id="hertzFormula"></div>
+                </div>
+                <div>
+                    <h3 style="color: #e94560; font-size: 0.85em; margin-bottom: 5px;">Factor de Seguridad</h3>
+                    <div class="formula-box" id="safetyFormula"></div>
+                </div>
+                <div>
+                    <h3 style="color: #e94560; font-size: 0.85em; margin-bottom: 5px;">Goodman Modificado</h3>
+                    <div class="formula-box" id="goodmanFormula"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 6: Resultados Detallados -->
+        <div class="panel" style="grid-column: 1 / -1;">
+            <h2>📊 Resultados del Análisis</h2>
+            <div class="results-grid" style="grid-template-columns: repeat(6, 1fr);">
+                <div class="result-card">
+                    <h3>σc - Contacto</h3>
+                    <div class="val" id="contactStress">0</div>
+                    <div class="unit">MPa</div>
+                </div>
+                <div class="result-card">
+                    <h3>σc permisible</h3>
+                    <div class="val" id="allowableStress">1200</div>
+                    <div class="unit">MPa</div>
+                </div>
+                <div class="result-card">
+                    <h3>Cp - Elástico</h3>
+                    <div class="val" id="elasticCoeff">191</div>
+                    <div class="unit">√MPa</div>
+                </div>
+                <div class="result-card">
+                    <h3>Nciclos</h3>
+                    <div class="val" id="cycles">0</div>
+                    <div class="unit">×10⁶</div>
+                </div>
+                <div class="result-card">
+                    <h3>Vida Restante</h3>
+                    <div class="val" id="remainingLife">∞</div>
+                    <div class="unit">horas</div>
+                </div>
+                <div class="result-card" id="statusCard">
+                    <h3>Estado</h3>
+                    <div class="val" style="font-size: 1em;">SEGURO</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let scene, camera, renderer, controls;
+        let gear1, gear2, contactPoint;
+        let pittingMarks = [];
+        let isRotating = false;
+        let rotationSpeed = 0.02;
+        let fluctuatingLoad = false;
+        let loadAmplitude = 0;
+        let currentLoad = 1000;
+        let cycleCount = 0;
+        let damageAccumulated = 0;
+        let fatigueChart;
+        let lastChartUpdate = 0;
+        let lastCycleUpdate = 0;
+        
+        // Variables para fatiga
+        let fatigueCycleCount = 0;
+        let fatigueDamage = 0;
+        let fatigueFrequency = 10;
+        let fatigueAmp = 0.5;
+        let fatigueAnimationId = null;
+        let maxFatigueData = 100;
+
+        const materials = {
+            'steel': { Cp: 191, Sac: 1200, name: 'Acero AISI 4140' },
+            'cast': { Cp: 170, Sac: 800, name: 'Hierro Fundido' },
+            'bronze': { Cp: 160, Sac: 600, name: 'Bronce' }
+        };
+        
+        const surfaceFactors = {
+            'polished': 0.8,
+            'machined': 1.0,
+            'rough': 1.3
+        };
+
+        window.onload = function() {
+            initThreeJS();
+            initChart();
+            initFatigueChart();
+            renderFormulas();
+            updateAnalysis();
+            setupListeners();
+            animate();
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a1a);
+
+            camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 150);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, 0, 0);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 50, 100);
+            scene.add(dirLight);
+
+            createGears();
+            
+            const contactGeom = new THREE.SphereGeometry(2, 16, 16);
+            const contactMat = new THREE.MeshPhongMaterial({ 
+                color: 0x00ff00, 
+                emissive: 0x00ff00,
+                emissiveIntensity: 0.5
+            });
+            contactPoint = new THREE.Mesh(contactGeom, contactMat);
+            contactPoint.position.set(0, 0, 4);
+            scene.add(contactPoint);
+        }
+
+        function createGearGeometry(outerRadius, innerRadius, numTeeth, depth) {
+            const shape = new THREE.Shape();
+            const anglePerTooth = (Math.PI * 2) / numTeeth;
+            const toothWidth = anglePerTooth * 0.3;
+            
+            for (let i = 0; i < numTeeth; i++) {
+                const angle = i * anglePerTooth;
+                
+                shape.lineTo(Math.cos(angle - toothWidth) * innerRadius, Math.sin(angle - toothWidth) * innerRadius);
+                shape.lineTo(Math.cos(angle - toothWidth * 0.5) * outerRadius, Math.sin(angle - toothWidth * 0.5) * outerRadius);
+                shape.lineTo(Math.cos(angle + toothWidth * 0.5) * outerRadius, Math.sin(angle + toothWidth * 0.5) * outerRadius);
+                shape.lineTo(Math.cos(angle + toothWidth) * innerRadius, Math.sin(angle + toothWidth) * innerRadius);
+            }
+            
+            shape.closePath();
+            
+            return new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
+        }
+
+        function createGears() {
+            const gear1Geom = createGearGeometry(28, 19, 12, 8);
+            const gear1Mat = new THREE.MeshPhongMaterial({ color: 0x3498db, metalness: 0.7, roughness: 0.3 });
+            gear1 = new THREE.Mesh(gear1Geom, gear1Mat);
+            gear1.position.set(-24, 0, 0); 
+            scene.add(gear1);
+
+            const gear2Geom = createGearGeometry(40, 31, 18, 8);
+            const gear2Mat = new THREE.MeshPhongMaterial({ color: 0xe74c3c, metalness: 0.7, roughness: 0.3 });
+            gear2 = new THREE.Mesh(gear2Geom, gear2Mat);
+            gear2.position.set(36, 0, 0);
+            gear2.rotation.z = Math.PI / 18;
+            scene.add(gear2);
+
+            for (let i = 0; i < 5; i++) {
+                const pittingGeom = new THREE.CircleGeometry(2, 8);
+                const pittingMat = new THREE.MeshBasicMaterial({ color: 0xe94560, transparent: true, opacity: 0 });
+                const pitting = new THREE.Mesh(pittingGeom, pittingMat);
+                pitting.position.set(-10, 10 + i * 5, 8.5);
+                scene.add(pitting);
+                pittingMarks.push(pitting);
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('fatigueChart').getContext('2d');
+            fatigueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Esfuerzo de Contacto σc',
+                        data: [],
+                        borderColor: '#e94560',
+                        backgroundColor: 'rgba(233, 69, 96, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }, {
+                        label: 'Límite Permisible Sac',
+                        data: [],
+                        borderColor: '#00d4ff',
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Ciclos (N)', color: '#aaa' }, 
+                            ticks: { color: '#aaa' },
+                            type: 'linear'
+                        },
+                        y: { 
+                            title: { display: true, text: 'Esfuerzo (MPa)', color: '#aaa' }, 
+                            ticks: { color: '#aaa' }, 
+                            min: 0 
+                        }
+                    },
+                    plugins: { 
+                        legend: { labels: { color: '#fff' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + ' MPa';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initFatigueChart() {
+            const ctx = document.getElementById('fatigueChart2').getContext('2d');
+            window.fatigueChart2 = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Carga Aplicada (N)',
+                            data: [],
+                            borderColor: '#00d4ff',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            yAxisID: 'y',
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Daño Acumulado (%)',
+                            data: [],
+                            borderColor: '#e94560',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    animation: false,
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Tiempo (s)', color: '#aaa' }, 
+                            ticks: { color: '#aaa' } 
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Carga (N)', color: '#00d4ff' },
+                            ticks: { color: '#00d4ff' },
+                            min: 0
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Daño (%)', color: '#e94560' },
+                            ticks: { color: '#e94560' },
+                            min: 0,
+                            max: 100,
+                            grid: { drawOnChartArea: false }
+                        }
+                    },
+                    plugins: { 
+                        legend: { labels: { color: '#fff' } },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderFormulas() {
+            katex.render('s_c = C_p \\sqrt{\\frac{W_t}{F \\cdot d} \\cdot K_o K_v K_s K_m}', document.getElementById('hertzFormula'), { displayMode: true });
+            katex.render('N_{sf} = \\frac{s_{ac}}{s_c}', document.getElementById('safetyFormula'), { displayMode: true });
+            katex.render('\\frac{1}{N} = \\frac{\\sigma_a}{S_e} + \\frac{\\sigma_m}{S_{ut}}', document.getElementById('goodmanFormula'), { displayMode: true });
+        }
+
+// Reemplaza la función updateAnalysis() con esta versión:
+
+function updateAnalysis() {
+    const Wt = parseFloat(document.getElementById('tangentialLoad').value);
+    const Ko = parseFloat(document.getElementById('overloadFactor').value);
+    const speed = parseFloat(document.getElementById('speed').value);
+    const materialType = document.getElementById('material').value;
+    const surfaceType = document.getElementById('surface').value;
+    
+    const mat = materials[materialType];
+    const Cf = surfaceFactors[surfaceType];
+    
+    const F = 8, d = 40, I = 0.12, Kv = 1.2, Ks = 1.0, Km = 1.3;
+    
+    // CORRECCIÓN: Usar carga máxima cuando hay fluctuación
+    let Wt_effective = Wt;
+    if (fluctuatingLoad || fatigueAnimationId) {
+        const amplitude = fatigueAmp || 0.3; // Usar amplitud de fatiga o default 30%
+        Wt_effective = Wt * (1 + amplitude);
+    }
+    
+    const sigma_c = mat.Cp * Math.sqrt((Wt_effective / (F * d * I)) * Ko * Kv * Ks * Km) * Cf;
+    const Nsf = mat.Sac / sigma_c;
+    
+    const cyclesPerSecond = speed / 60;
+    cycleCount += cyclesPerSecond * 0.1;
+    
+    const totalCycles = cycleCount;
+    const cyclesMillion = totalCycles / 1e6;
+    
+    if (sigma_c > mat.Sac * 0.7) {
+        damageAccumulated += (sigma_c / mat.Sac) * 0.0001 * Ko * cyclesPerSecond * 0.1;
+    }
+    
+    const damagePercent = Math.min(damageAccumulated * 100, 100);
+    
+    document.getElementById('wtVal').textContent = Wt;
+    document.getElementById('koVal').textContent = Ko;
+    document.getElementById('speedVal').textContent = speed;
+    
+    document.getElementById('contactStress').textContent = sigma_c.toFixed(1);
+    document.getElementById('allowableStress').textContent = mat.Sac;
+    document.getElementById('elasticCoeff').textContent = mat.Cp;
+    document.getElementById('cycles').textContent = cyclesMillion.toFixed(2);
+    document.getElementById('damagePercent').textContent = damagePercent.toFixed(1) + '%';
+    document.getElementById('safetyFactor').textContent = Nsf.toFixed(2);
+    
+    let remainingLife = '∞';
+    if (damageAccumulated > 0.01) {
+        remainingLife = Math.floor((1 - damageAccumulated) / damageAccumulated * 100).toLocaleString();
+    }
+    document.getElementById('remainingLife').textContent = remainingLife;
+    
+    const statusCard = document.getElementById('statusCard');
+    const statusBar = document.getElementById('statusBar');
+    const damageCard = document.getElementById('damageCard');
+    const safetyCard = document.getElementById('safetyCard');
+    
+    statusCard.className = 'result-card';
+    statusBar.className = 'status-bar';
+    damageCard.className = 'result-card';
+    safetyCard.className = 'result-card';
+    
+    if (Nsf < 1.0 || damagePercent > 80) {
+        statusCard.classList.add('critical');
+        statusBar.classList.add('critical');
+        damageCard.classList.add('critical');
+        safetyCard.classList.add('critical');
+        statusCard.querySelector('.val').textContent = 'CRÍTICO';
+        statusBar.innerHTML = `⚠️ CRÍTICO: σc = ${sigma_c.toFixed(1)} MPa > Sac = ${mat.Sac} MPa | Daño: ${damagePercent.toFixed(1)}%`;
+    } else if (Nsf < 1.5 || damagePercent > 50) {
+        statusCard.classList.add('warning');
+        statusBar.classList.add('warning');
+        damageCard.classList.add('warning');
+        safetyCard.classList.add('warning');
+        statusCard.querySelector('.val').textContent = 'PRECAUCIÓN';
+        statusBar.innerHTML = `⚡ PRECAUCIÓN: σc = ${sigma_c.toFixed(1)} MPa | N = ${Nsf.toFixed(2)} | Daño: ${damagePercent.toFixed(1)}%`;
+    } else {
+        statusCard.querySelector('.val').textContent = 'SEGURO';
+        statusBar.innerHTML = `✅ SEGURO: σc = ${sigma_c.toFixed(1)} MPa | N = ${Nsf.toFixed(2)} | Daño: ${damagePercent.toFixed(1)}%`;
+    }
+    
+    updateFormulas(Wt_effective, F, d, Ko, Kv, Ks, Km, mat.Cp, sigma_c, mat.Sac, Nsf);
+    updateChart(totalCycles, sigma_c, mat.Sac);
+    updateVisualization(sigma_c, mat.Sac, damagePercent);
+}
+        function updateFormulas(Wt, F, d, Ko, Kv, Ks, Km, Cp, sigma_c, Sac, Nsf) {
+            const I = 0.12;
+            const formula1 = `s_c = ${Cp} \\sqrt{\\frac{${Wt}}{${F} \\cdot ${d} \\cdot ${I}} \\cdot ${Ko} \\cdot ${Kv} \\cdot ${Ks} \\cdot ${Km}} = \\mathbf{${sigma_c.toFixed(1)} \\text{ MPa}}`;
+            katex.render(formula1, document.getElementById('hertzFormula'), { displayMode: true });
+            
+            const formula2 = `N_{sf} = \\frac{${Sac}}{${sigma_c.toFixed(1)}} = \\mathbf{${Nsf.toFixed(2)}}`;
+            katex.render(formula2, document.getElementById('safetyFormula'), { displayMode: true });
+        }
+
+        function updateChart(cycle, stress, allowable) {
+            // Solo agregar punto cada ciertos ciclos para evitar saturación
+            if (fatigueChart.data.datasets[0].data.length === 0 || 
+                cycle - fatigueChart.data.datasets[0].data[fatigueChart.data.datasets[0].data.length - 1].x > 100) {
+                
+                fatigueChart.data.datasets[0].data.push({ x: cycle, y: stress });
+                fatigueChart.data.datasets[1].data.push({ x: cycle, y: allowable });
+                
+                // Mantener solo últimos 50 puntos
+                if (fatigueChart.data.datasets[0].data.length > 50) {
+                    fatigueChart.data.datasets[0].data.shift();
+                    fatigueChart.data.datasets[1].data.shift();
+                }
+                fatigueChart.update('none');
+            }
+        }
+
+        function updateVisualization(stress, allowable, damage) {
+            const ratio = stress / allowable;
+            contactPoint.material.color.setRGB(Math.min(ratio * 2, 1), Math.max(1 - ratio * 2, 0), 0);
+            contactPoint.material.emissive.setRGB(Math.min(ratio, 0.5), 0, 0);
+            
+            const damageLevel = Math.floor(damage / 20);
+            for (let i = 0; i < 5; i++) {
+                const indicator = document.getElementById(`p${i+1}`);
+                if (i < damageLevel) {
+                    indicator.classList.add('damage');
+                    pittingMarks[i].material.opacity = 0.8;
+                } else {
+                    indicator.classList.remove('damage');
+                    pittingMarks[i].material.opacity = 0;
+                }
+            }
+        }
+
+        function startFatigueSimulation() {
+            if (fatigueAnimationId) {
+                cancelAnimationFrame(fatigueAnimationId);
+                fatigueAnimationId = null;
+                document.getElementById('btnFatigaStart').textContent = '▶ Iniciar Fatiga';
+                document.getElementById('btnFatigaStart').classList.remove('active');
+                return;
+            }
+            
+            document.getElementById('btnFatigaStart').textContent = '⏸ Fatiga Activa';
+            document.getElementById('btnFatigaStart').classList.add('active');
+            
+            let startTime = Date.now();
+            let lastUpdateTime = 0;
+            
+            function animate() {
+                const currentTime = Date.now();
+                const elapsedTime = (currentTime - startTime) / 1000;
+                
+                // Calcular carga senoidal
+                const baseLoad = parseFloat(document.getElementById('tangentialLoad').value);
+                const loadAmplitude = baseLoad * fatigueAmp;
+                currentLoad = baseLoad + loadAmplitude * Math.sin(2 * Math.PI * fatigueFrequency * elapsedTime);
+                
+                // Calcular ciclos basados en frecuencia
+                const targetCycles = elapsedTime * fatigueFrequency;
+                
+                while (fatigueCycleCount < targetCycles) {
+                    fatigueCycleCount++;
+                    
+                    // Calcular daño por ciclo (modelo de Miner simplificado)
+                    const stressRatio = currentLoad / baseLoad;
+                    const damagePerCycle = Math.pow(Math.abs(stressRatio), 3) * 0.0001 * (fatigueAmp + 0.1);
+                    
+                    fatigueDamage += damagePerCycle;
+                }
+                
+                // Actualizar gráfica cada 200ms para mejor rendimiento
+                if (currentTime - lastUpdateTime > 200) {
+                    updateFatigueChart(elapsedTime, currentLoad);
+                    lastUpdateTime = currentTime;
+                }
+                
+                // Actualizar visualización de engranajes
+                if (fatigueCycleCount % Math.max(1, Math.floor(fatigueFrequency / 5)) === 0) {
+                    updateFatigueVisualization();
+                }
+                
+                // Verificar falla
+                if (fatigueDamage >= 100) {
+                    fatigueDamage = 100;
+                    showFatigueFailure();
+                    return;
+                }
+                
+                fatigueAnimationId = requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+
+        function updateFatigueVisualization() {
+            document.getElementById('fatigueStatus').innerHTML = 
+                `Ciclos: ${fatigueCycleCount.toLocaleString()} | ` +
+                `Daño: ${fatigueDamage.toFixed(2)}%`;
+            
+            updateGearTeethStress(fatigueDamage);
+        }
+
+        function updateFatigueChart(time, currentLoad) {
+            const chart = window.fatigueChart2;
+            if (!chart) return;
+            
+            // Agregar nuevos datos
+            chart.data.labels.push(time.toFixed(2));
+            chart.data.datasets[0].data.push(currentLoad);
+            chart.data.datasets[1].data.push(Math.min(fatigueDamage, 100));
+            
+            // Mantener solo últimos 100 puntos para mejor rendimiento
+            if (chart.data.labels.length > 100) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+                chart.data.datasets[1].data.shift();
+            }
+            
+            chart.update('none');
+            
+            // Actualizar status
+            document.getElementById('fatigueStatus').innerHTML = 
+                `Ciclos: ${fatigueCycleCount.toLocaleString()} | ` +
+                `Carga: ${currentLoad.toFixed(0)} N | ` +
+                `Daño: ${fatigueDamage.toFixed(2)}%`;
+        }
+
+        function updateGearTeethStress(damagePercent) {
+            const redIntensity = Math.min(damagePercent / 50, 1);
+            const greenIntensity = Math.max(1 - damagePercent / 100, 0);
+            
+            if (gear1) {
+                gear1.material.color.setRGB(
+                    0.2 + redIntensity * 0.6,
+                    greenIntensity * 0.6,
+                    0.2
+                );
+            }
+            
+            if (gear2) {
+                gear2.material.color.setRGB(
+                    0.6 + redIntensity * 0.4,
+                    greenIntensity * 0.2,
+                    0.2
+                );
+            }
+        }
+
+        function showFatigueFailure() {
+            cancelAnimationFrame(fatigueAnimationId);
+            fatigueAnimationId = null;
+            
+            alert(`⚠️ FALLA POR FATIGA DETECTADA\n\n` +
+                  `Ciclos totales: ${fatigueCycleCount.toLocaleString()}\n` +
+                  `Daño acumulado: 100%\n\n` +
+                  `Los engranajes han fallado por fatiga del material.`);
+            
+            if (gear1) gear1.material.color.setRGB(0.3, 0.3, 0.3);
+            if (gear2) gear2.material.color.setRGB(0.3, 0.3, 0.3);
+            
+            document.getElementById('btnFatigaStart').textContent = '▶ Iniciar Fatiga';
+            document.getElementById('btnFatigaStart').classList.remove('active');
+        }
+
+        function resetFatigue() {
+            if (fatigueAnimationId) {
+                cancelAnimationFrame(fatigueAnimationId);
+                fatigueAnimationId = null;
+            }
+            
+            fatigueCycleCount = 0;
+            fatigueDamage = 0;
+            
+            if (window.fatigueChart2) {
+                window.fatigueChart2.data.labels = [];
+                window.fatigueChart2.data.datasets[0].data = [];
+                window.fatigueChart2.data.datasets[1].data = [];
+                window.fatigueChart2.update();
+            }
+            
+            if (gear1) gear1.material.color.setRGB(0.2, 0.6, 0.8);
+            if (gear2) gear2.material.color.setRGB(0.9, 0.3, 0.3);
+            
+            document.getElementById('fatigueStatus').innerHTML = 
+                'Ciclos aplicados: 0 | Daño acumulado: 0%';
+            
+            document.getElementById('btnFatigaStart').textContent = '▶ Iniciar Fatiga';
+            document.getElementById('btnFatigaStart').classList.remove('active');
+        }
+
+        function toggleRotation() {
+            isRotating = !isRotating;
+            document.getElementById('btnRotate').classList.toggle('active');
+        }
+
+        function toggleFluctuation() {
+            fluctuatingLoad = !fluctuatingLoad;
+            document.getElementById('btnFluct').classList.toggle('active');
+            if (fluctuatingLoad) {
+                loadAmplitude = parseFloat(document.getElementById('tangentialLoad').value) * 0.3;
+            }
+        }
+
+        function resetView() {
+            camera.position.set(0, 0, 150);
+            controls.target.set(0, 0, 0);
+            controls.reset();
+            cycleCount = 0;
+            damageAccumulated = 0;
+            fatigueChart.data.datasets[0].data = [];
+            fatigueChart.data.datasets[1].data = [];
+            fatigueChart.update();
+            updateAnalysis();
+        }
+
+        function setupListeners() {
+            ['tangentialLoad', 'overloadFactor', 'speed', 'material', 'surface'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    updateAnalysis();
+                });
+            });
+            
+            document.getElementById('freqFatiga').addEventListener('input', (e) => {
+                fatigueFrequency = parseFloat(e.target.value);
+                document.getElementById('freqFatigaVal').textContent = fatigueFrequency;
+            });
+            
+            document.getElementById('ampFatiga').addEventListener('input', (e) => {
+                fatigueAmp = parseFloat(e.target.value) / 100;
+                document.getElementById('ampFatigaVal').textContent = e.target.value;
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const currentTime = Date.now();
+            
+            // 1. Rotación visual de los engranajes (VINCULADA AL SLIDER DE RPM)
+            if (isRotating) {
+                const speed = parseFloat(document.getElementById('speed').value);
+                
+                // Normalizamos la velocidad visual: 
+                // A 1000 RPM = 0.03 rad/frame (velocidad media)
+                // A 5000 RPM = 0.15 rad/frame (muy rápido)
+                // A 100 RPM = 0.003 rad/frame (muy lento)
+                const visualSpeed = (speed / 1000) * 0.03; 
+                
+                gear1.rotation.z += visualSpeed;
+                gear2.rotation.z -= visualSpeed * (12 / 18); // Relación de transmisión correcta
+                
+                // Acumular ciclos reales basados en las RPM configuradas
+                const cyclesPerSecond = speed / 60; // RPM a Revoluciones Por Segundo
+                const cyclesPerFrame = cyclesPerSecond * 0.016; // Aproximadamente 60 FPS
+                
+                cycleCount += cyclesPerFrame;
+                
+                // Actualizar el análisis, fórmulas y gráfica principal cada 100ms
+                if (currentTime - lastCycleUpdate > 100) {
+                    updateAnalysis();
+                    lastCycleUpdate = currentTime;
+                }
+            }
+            
+            // 2. Carga fluctuante simple (si está activa independientemente de la simulación de fatiga)
+            if (fluctuatingLoad && !fatigueAnimationId) {
+                const baseLoad = parseFloat(document.getElementById('tangentialLoad').value);
+                currentLoad = baseLoad + Math.sin(Date.now() / 500) * loadAmplitude;
+            }
+            
+            // 3. Efecto de pulso en el punto de contacto
+            const pulse = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+            contactPoint.scale.set(pulse, pulse, pulse);
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+    </script>
+</body>
+</html>
