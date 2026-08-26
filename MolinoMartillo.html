@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Falla por Impacto y Fatiga — Molino de Martillos</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  :root{
+    --bg-0:#070d14;--bg-1:#0d1826;--bg-2:#132236;--panel:#0f1b2d;
+    --border:#1f3350;--text:#d6e4f0;--muted:#7a8ea3;
+    --blue:#3b82f6;--orange:#ff6b35;--green:#22c55e;--red:#ef4444;--yellow:#eab308;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg-0);color:var(--text);font-family:'Segoe UI',Tahoma,sans-serif;overflow:hidden}
+  body{background:radial-gradient(circle at 20% 10%, rgba(59,130,246,0.08), transparent 50%),radial-gradient(circle at 80% 90%, rgba(255,107,53,0.06), transparent 50%),var(--bg-0)}
+
+  header{height:58px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:linear-gradient(180deg, var(--bg-2), var(--bg-1))}
+  header h1{font-size:15px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text);font-weight:600}
+  header h1 span{color:var(--orange)}
+  header .meta{font-size:11px;color:var(--muted);font-family:'Consolas',monospace}
+  header .meta b{color:var(--blue)}
+
+  main{display:grid;grid-template-columns:1.15fr 1fr;gap:12px;padding:12px;height:calc(100% - 58px)}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+  .panel-head{padding:10px 14px;border-bottom:1px solid var(--border);background:linear-gradient(180deg, rgba(30,58,95,0.4), transparent);display:flex;align-items:center;gap:10px;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)}
+  .panel-head .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);box-shadow:0 0 8px var(--blue)}
+  .panel-head .tag{margin-left:auto;color:var(--orange);font-size:10px;font-family:'Consolas',monospace}
+
+  #viewer{flex:1;position:relative;background:#050a12;min-height:0}
+  #viewer canvas{display:block}
+  .viewer-overlay{position:absolute;top:10px;left:10px;background:rgba(13,24,38,0.9);border:1px solid var(--border);padding:8px 12px;border-radius:4px;font-family:'Consolas',monospace;font-size:11px;color:var(--muted);pointer-events:none;line-height:1.6}
+  .viewer-overlay b{color:var(--orange)}
+  .legend{position:absolute;bottom:10px;left:10px;background:rgba(13,24,38,0.9);border:1px solid var(--border);padding:10px 14px;border-radius:4px;font-size:11px;line-height:1.8}
+  .legend .item{display:flex;align-items:center;gap:8px}
+  .legend .sw{width:12px;height:12px;border-radius:2px}
+
+  .controls{padding:12px 14px;border-top:1px solid var(--border);background:linear-gradient(180deg, transparent, rgba(10,20,32,0.6));display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+  .slider-group label{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
+  .slider-group label .val{color:var(--orange);font-family:'Consolas',monospace;font-size:13px;font-weight:600;letter-spacing:0}
+  .slider-group label .unit{color:var(--muted);font-size:10px;margin-left:2px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--bg-2);border-radius:2px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--blue);cursor:pointer;border:2px solid var(--text);box-shadow:0 0 6px rgba(59,130,246,0.6);transition:transform 0.15s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--blue);cursor:pointer;border:2px solid var(--text)}
+
+  .content{flex:1;overflow-y:auto;padding:16px 20px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  .content::-webkit-scrollbar{width:8px}
+  .content::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+  .section{margin-bottom:22px}
+  .section h2{font-size:13px;text-transform:uppercase;letter-spacing:2px;color:var(--blue);margin-bottom:10px;padding-bottom:6px;border-bottom:1px dashed var(--border);display:flex;align-items:center;gap:8px}
+  .section h2::before{content:"";color:var(--orange)}
+  .section p{font-size:13px;line-height:1.65;color:var(--text);margin-bottom:8px}
+  .section p .hl{color:var(--orange);font-weight:600}
+
+  .eq-box{background:var(--bg-1);border:1px solid var(--border);border-left:3px solid var(--blue);padding:12px 16px;margin:10px 0;border-radius:4px;overflow-x:auto}
+  .eq-box.warn{border-left-color:var(--orange)}
+  .eq-box .eq-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px}
+
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .result-card{background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:10px 12px;position:relative;overflow:hidden}
+  .result-card::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--blue)}
+  .result-card.orange::before{background:var(--orange)}
+  .result-card .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:4px}
+  .result-card .num{font-family:'Consolas',monospace;font-size:20px;font-weight:700;color:var(--text)}
+  .result-card .num small{font-size:11px;color:var(--muted);margin-left:3px;font-weight:400}
+
+  .traffic{display:flex;align-items:center;gap:14px;background:var(--bg-1);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-top:12px}
+  .lights{display:flex;gap:8px}
+  .light{width:22px;height:22px;border-radius:50%;background:#1a2332;border:1px solid #2a3a52;transition:all 0.3s}
+  .light.on.green{background:var(--green);box-shadow:0 0 14px var(--green)}
+  .light.on.yellow{background:var(--yellow);box-shadow:0 0 14px var(--yellow)}
+  .light.on.red{background:var(--red);box-shadow:0 0 14px var(--red)}
+  .traffic-info{flex:1}
+  .traffic-info .status{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+  .traffic-info .status.safe{color:var(--green)}
+  .traffic-info .status.warn{color:var(--yellow)}
+  .traffic-info .status.danger{color:var(--red)}
+  .traffic-info .desc{font-size:11px;color:var(--muted);margin-top:3px}
+  .traffic-info .ratio{font-family:'Consolas',monospace;font-size:12px;color:var(--text);margin-top:4px}
+
+  table.data{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;font-family:'Consolas',monospace}
+  table.data th,table.data td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  table.data th{color:var(--muted);text-transform:uppercase;font-size:10px;letter-spacing:1px;font-weight:500}
+  table.data td b{color:var(--orange)}
+
+  .calc-step{background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin:8px 0}
+  .calc-step .step-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:8px;font-weight:600}
+  .calc-step .formula{font-family:'Consolas',monospace;font-size:12px;color:var(--text);margin:4px 0;padding:4px 8px;background:var(--bg-2);border-radius:3px;border-left:2px solid var(--blue)}
+
+  .select-group{margin:10px 0}
+  .select-group label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+  .select-group select{width:100%;padding:8px 12px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px;font-family:'Consolas',monospace;cursor:pointer;outline:none}
+  .select-group select:focus{border-color:var(--blue)}
+  .select-group select option{background:var(--bg-1);color:var(--text)}
+
+  .chart-container{background:var(--bg-1);border:1px solid var(--border);border-radius:6px;padding:12px;margin:12px 0;position:relative;height:300px}
+  .chart-container.small{height:250px}
+  .chart-title{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--orange);margin-bottom:10px;font-weight:600}
+  .chart-info{font-size:11px;color:var(--muted);margin-top:8px;padding:8px;background:var(--bg-2);border-radius:4px;border-left:3px solid var(--blue);line-height:1.6}
+  .chart-info b{color:var(--text)}
+  .chart-info .val{color:var(--orange);font-family:'Consolas',monospace;font-weight:600}
+  .chart-info .type{color:var(--blue);font-family:'Consolas',monospace}
+
+  .katex{font-size:1.05em !important}
+  .katex-display{margin:0.4em 0 !important}
+
+  @media (max-width:1000px){main{grid-template-columns:1fr;height:auto;overflow-y:auto}html,body{overflow:auto}.panel{min-height:500px}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚙ Análisis de Falla por <span>Impacto &amp; Fatiga</span> — Molino de Martillos</h1>
+  <div class="meta">Curso: Análisis y Diseño de Máquinas &nbsp;|&nbsp; <b>Módulo 04</b> &nbsp;|&nbsp; 26·Ago·2026</div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="panel-head">
+      <span class="dot"></span>
+      <span>Visualizador 3D — Rotor &amp; Zona Crítica</span>
+      <span class="tag">THREE.JS · WEBGL</span>
+    </div>
+    <div id="viewer">
+      <div class="viewer-overlay">
+        <div>◉ Cámara: <b>OrbitControls</b></div>
+        <div>⟲ Rotación automática del rotor</div>
+        <div>⚠ Zona crítica en <b>naranja</b> (agujero pasador)</div>
+      </div>
+      <div class="legend">
+        <div class="item"><span class="sw" style="background:#4a6a8a"></span>Eje &amp; Discos (Acero)</div>
+        <div class="item"><span class="sw" style="background:#8a9bae"></span>Martillo</div>
+        <div class="item"><span class="sw" style="background:#ff6b35"></span>Zona crítica K<sub>t</sub> (pasador)</div>
+        <div class="item"><span class="sw" style="background:#3b82f6"></span>Plano de corte σ</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="slider-group">
+        <label>Velocidad Angular ω <span><span class="val" id="vRPM">2000</span><span class="unit">RPM</span></span></label>
+        <input type="range" id="sRPM" min="1000" max="3500" step="50" value="2000">
+      </div>
+      <div class="slider-group">
+        <label>Masa del Martillo m <span><span class="val" id="vM">5.0</span><span class="unit">kg</span></span></label>
+        <input type="range" id="sM" min="2" max="10" step="0.1" value="5">
+      </div>
+      <div class="slider-group">
+        <label>Radio de Giro R <span><span class="val" id="vR">0.40</span><span class="unit">m</span></span></label>
+        <input type="range" id="sR" min="0.2" max="0.6" step="0.01" value="0.4">
+      </div>
+      <div class="slider-group">
+        <label>Factor K<sub>t</sub> (Pasador) <span><span class="val" id="vKt">2.50</span></span></label>
+        <input type="range" id="sKt" min="1.5" max="4.5" step="0.05" value="2.5">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <span class="dot" style="background:var(--orange);box-shadow:0 0 8px var(--orange)"></span>
+      <span>Memoria de Cálculo Interactiva</span>
+      <span class="tag">KaTeX · Chart.js</span>
+    </div>
+    <div class="content" id="content">
+
+      <div class="section">
+        <h2>CONFIGURACIÓN DEL MATERIAL</h2>
+        <div class="select-group">
+          <label>Material del martillo:</label>
+          <select id="materialSelect">
+            <option value="1045">AISI 1045 (Acero medio carbono) - Su=620 MPa</option>
+            <option value="4140">AISI 4140 (Acero Cr-Mo) - Su=850 MPa</option>
+            <option value="1020">AISI 1020 (Acero bajo carbono) - Su=420 MPa</option>
+            <option value="4340">AISI 4340 (Acero Ni-Cr-Mo) - Su=1000 MPa</option>
+            <option value="6061">Aluminio 6061-T6 - Su=310 MPa</option>
+          </select>
+        </div>
+        <div class="select-group">
+          <label>Acabado superficial:</label>
+          <select id="finishSelect">
+            <option value="1.0">Pulido (Ka=1.0)</option>
+            <option value="0.90" selected>Mecanizado (Ka=0.90)</option>
+            <option value="0.85">Mecanizado rugoso (Ka=0.85)</option>
+            <option value="0.60">Forjado (Ka=0.60)</option>
+            <option value="0.50">Forjado rugoso (Ka=0.50)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>CURVA S-N (WÖHLER) CON ESFUERZO EQUIVALENTE</h2>
+        <div class="chart-container">
+          <div class="chart-title">Esfuerzo vs Número de Ciclos hasta Falla</div>
+          <canvas id="snChart"></canvas>
+        </div>
+        <div class="chart-info">
+          <b>σₐ real:</b> <span class="val" id="infoSigmaA">—</span> MPa &nbsp;|&nbsp;
+          <b>σₘ:</b> <span class="val" id="infoSigmaM">—</span> MPa<br>
+          <b>σ<sub>eq</sub> (Goodman):</b> <span class="val" id="infoSigmaEq">—</span> MPa<br>
+          <b>Vida estimada:</b> <span class="val" id="lifeEstimate">—</span> ciclos<br>
+          <b>Tipo de fatiga:</b> <span class="type" id="fatigueType">—</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>DIAGRAMA DE GOODMAN</h2>
+        <div class="chart-container">
+          <div class="chart-title">Criterio de Fatiga - Línea de Goodman</div>
+          <canvas id="goodmanChart"></canvas>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:8px">
+          El punto operativo (σₘ, σₐ) debe estar por debajo de la línea de Goodman para diseño seguro.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>DISTRIBUCIÓN DE DAÑO</h2>
+        <div class="chart-container small">
+          <div class="chart-title">Contribución al Daño por Fatiga</div>
+          <canvas id="damageChart"></canvas>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>DATOS DE ENTRADA</h2>
+        <div class="calc-step" id="inputData"></div>
+      </div>
+
+      <div class="section">
+        <h2>1 · ENERGÍA CINÉTICA DE IMPACTO</h2>
+        <div class="calc-step"><div class="step-title">Paso 1.1: Conversión de RPM a rad/s</div><div class="formula" id="step1_1"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 1.2: Velocidad tangencial</div><div class="formula" id="step1_2"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 1.3: Energía cinética</div><div class="formula" id="step1_3"></div></div>
+        <div class="result-grid">
+          <div class="result-card"><div class="lbl">ω (rad/s)</div><div class="num" id="rOmega">—<small>rad/s</small></div></div>
+          <div class="result-card"><div class="lbl">V<sub>t</sub> (m/s)</div><div class="num" id="rVt">—<small>m/s</small></div></div>
+          <div class="result-card orange"><div class="lbl">E<sub>k</sub> (Impacto)</div><div class="num" id="rEk">—<small>J</small></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>2 · FUERZA CENTRÍFUGA</h2>
+        <div class="calc-step"><div class="step-title">Paso 2.1: Cálculo de fuerza centrífuga</div><div class="formula" id="step2_1"></div></div>
+        <div class="result-grid">
+          <div class="result-card orange"><div class="lbl">F<sub>c</sub> Centrífuga</div><div class="num" id="rFc">—<small>N</small></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>3 · ESFUERZOS EN EL PASADOR</h2>
+        <div class="calc-step"><div class="step-title">Paso 3.1: Área neta de la sección (agujero del pasador)</div><div class="formula" id="step3_1"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 3.2: Esfuerzo nominal (sin concentración)</div><div class="formula" id="step3_2"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 3.3: Esfuerzo medio concentrado (con K<sub>t</sub>)</div><div class="formula" id="step3_3"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 3.4: Esfuerzo alternante (impacto dinámico)</div><div class="formula" id="step3_4"></div></div>
+        <table class="data">
+          <thead><tr><th>Parámetro</th><th>Símbolo</th><th>Valor</th><th>Unidad</th></tr></thead>
+          <tbody>
+            <tr><td>Resistencia última</td><td>S<sub>u</sub></td><td id="tSu"><b>—</b></td><td>MPa</td></tr>
+            <tr><td>Límite de fatiga corregido</td><td>S<sub>e</sub></td><td id="tSe"><b>—</b></td><td>MPa</td></tr>
+            <tr><td>Diámetro pasador</td><td>d<sub>p</sub></td><td><b>30</b></td><td>mm</td></tr>
+            <tr><td>Espesor martillo</td><td>t</td><td><b>20</b></td><td>mm</td></tr>
+            <tr><td>Coef. dinámico impacto</td><td>C<sub>d</sub></td><td><b>0.30</b></td><td>—</td></tr>
+            <tr><td>Área neta</td><td>A</td><td id="tA"><b>—</b></td><td>mm²</td></tr>
+            <tr><td>Esfuerzo nominal</td><td>σ<sub>nom</sub></td><td id="tSnom"><b>—</b></td><td>MPa</td></tr>
+            <tr><td>Esfuerzo medio σ<sub>m</sub></td><td>σ<sub>m</sub></td><td id="tSm"><b>—</b></td><td>MPa</td></tr>
+            <tr><td>Esfuerzo alternante σ<sub>a</sub></td><td>σ<sub>a</sub></td><td id="tSa"><b>—</b></td><td>MPa</td></tr>
+            <tr><td>Esfuerzo equiv. Goodman</td><td>σ<sub>eq</sub></td><td id="tSeq"><b>—</b></td><td>MPa</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>4 · CRITERIO DE GOODMAN MODIFICADO</h2>
+        <div class="calc-step"><div class="step-title">Paso 4.1: Primer término (esfuerzo alternante)</div><div class="formula" id="step4_1"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 4.2: Segundo término (esfuerzo medio)</div><div class="formula" id="step4_2"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 4.3: Relación de daño total</div><div class="formula" id="step4_3"></div></div>
+        <div class="calc-step"><div class="step-title">Paso 4.4: Esfuerzo equivalente de Goodman</div><div class="formula" id="step4_4"></div></div>
+        <div class="eq-box warn"><div class="eq-label">Criterio de Goodman (alto ciclo)</div><div id="eqGoodman"></div></div>
+        <div class="traffic">
+          <div class="lights">
+            <div class="light" id="Lgreen"></div>
+            <div class="light" id="Lyellow"></div>
+            <div class="light" id="Lred"></div>
+          </div>
+          <div class="traffic-info">
+            <div class="status" id="statusTxt">EVALUANDO…</div>
+            <div class="desc" id="statusDesc">—</div>
+            <div class="ratio" id="ratioTxt">n<sub>G</sub> = —</div>
+          </div>
+        </div>
+        <div class="eq-box" style="margin-top:12px"><div class="eq-label">Relación de daño Goodman</div><div id="eqRatio"></div></div>
+      </div>
+
+      <div class="section">
+        <h2>5 · CONCLUSIONES DE INGENIERÍA</h2>
+        <p>• El aumento de <span class="hl">ω</span> y <span class="hl">R</span> eleva cuadráticamente la energía de impacto y la fuerza centrífuga, acelerando la fatiga.<br>
+           • Un <span class="hl">K<sub>t</sub> elevado</span> (agujero mal redondeado o con marcas de mecanizado) multiplica el esfuerzo local y reduce drásticamente la vida útil.<br>
+           • El <span class="hl">acabado superficial</span> afecta directamente el límite de fatiga: pulido &gt; mecanizado &gt; forjado.<br>
+           • El <span class="hl">esfuerzo equivalente σ<sub>eq</sub></span> unifica el efecto de σₐ + σₘ para evaluar la vida en la curva S-N.<br>
+           • <span class="hl">Recomendación</span>: mantener K<sub>t</sub> ≤ 2.0 mediante radios de acuerdo generosos, acabado superficial Ra &lt; 1.6 μm, e inspección por partículas magnéticas periódica en la zona del pasador.</p>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<script>
+const MATERIALS = {
+  '1045': { name: 'AISI 1045', Su: 620, Sy: 450 },
+  '4140': { name: 'AISI 4140', Su: 850, Sy: 655 },
+  '1020': { name: 'AISI 1020', Su: 420, Sy: 350 },
+  '4340': { name: 'AISI 4340', Su: 1000, Sy: 860 },
+  '6061': { name: 'Aluminio 6061-T6', Su: 310, Sy: 276 }
+};
+
+const PARAMS = { dp: 0.030, t: 0.020, Cd: 0.30 };
+
+const state = {
+  RPM: 2000, m: 5.0, R: 0.40, Kt: 2.50,
+  material: '1045', finishFactor: 0.90
+};
+
+let scene, camera, renderer, controls;
+let rotorGroup, hammerGroup, crackPlane, criticalRing, glowRing;
+let hammerBody, hammerHead, hammerEdge;
+let clock = new THREE.Clock();
+let goodmanChart, damageChart, snChart;
+
+const HOUSING_RADIUS = 1.0, DISC_RADIUS = 0.55, MAX_HAMMER_EXTENT = 0.85;
+const HAMMER_BASE_LENGTH = 0.22, HAMMER_HEAD_LENGTH = 0.10;
+
+// ============================================================
+// CURVA S-N (Basquin) y estimación de vida con σ_eq de Goodman
+// ============================================================
+function calculateSNCurve(mat, Se){
+  const Sf = 0.9 * mat.Su;
+  const a = Math.pow(Sf, 2) / Se;
+  const b = -1/3 * Math.log10(Sf / Se);
+  return { a, b, Sf };
+}
+
+function estimateLife(sigma_eq, Se, mat){
+  // σ_eq ya incluye el efecto de σₘ vía Goodman
+  const sn = calculateSNCurve(mat, Se);
+
+  if(sigma_eq <= Se){
+    return { cycles: Infinity, type: 'Vida infinita (σ_eq ≤ Sₑ)' };
+  } else if(sigma_eq >= sn.Sf){
+    // Por encima de la resistencia a fatiga de bajo ciclo
+    // Vida muy corta, extrapolamos
+    const N = Math.max(100, Math.pow(sigma_eq / sn.a, 1/sn.b));
+    return { cycles: N, type: 'Fatiga de bajo ciclo (LCF) - CRÍTICO' };
+  } else {
+    const N = Math.pow(sigma_eq / sn.a, 1/sn.b);
+    const type = N < 1e4 ? 'Fatiga de bajo ciclo (LCF)' :
+                 N < 1e6 ? 'Fatiga de alto ciclo (HCF)' :
+                 'Fatiga de muy alto ciclo (VHCF)';
+    return { cycles: N, type };
+  }
+}
+
+function initCharts(){
+  // GOODMAN
+  const goodmanCtx = document.getElementById('goodmanChart').getContext('2d');
+  goodmanChart = new Chart(goodmanCtx, {
+    type: 'line',
+    data: { datasets: [
+      { label: 'Línea de Goodman', data: [], borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.08)', borderWidth: 2, fill: true, pointRadius: 0, tension: 0 },
+      { label: 'Punto Operativo', data: [], backgroundColor: '#3b82f6', borderColor: '#3b82f6', pointRadius: 7, pointHoverRadius: 9, showLine: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#d6e4f0', font: { size: 11 } } },
+        tooltip: { backgroundColor: 'rgba(13,24,38,0.95)', titleColor: '#ff6b35', bodyColor: '#d6e4f0', borderColor: '#1f3350', borderWidth: 1,
+          callbacks: { label: ctx => `σₘ: ${ctx.parsed.x.toFixed(2)} MPa, σₐ: ${ctx.parsed.y.toFixed(2)} MPa` }
+        }
+      },
+      scales: {
+        x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Esfuerzo Medio σₘ (MPa)', color: '#7a8ea3', font: { size: 11 } }, grid: { color: '#1f3350' }, ticks: { color: '#7a8ea3' } },
+        y: { title: { display: true, text: 'Esfuerzo Alternante σ (MPa)', color: '#7a8ea3', font: { size: 11 } }, grid: { color: '#1f3350' }, ticks: { color: '#7a8ea3' } }
+      }
+    }
+  });
+
+  // DAÑO
+  const damageCtx = document.getElementById('damageChart').getContext('2d');
+  damageChart = new Chart(damageCtx, {
+    type: 'bar',
+    data: { labels: ['σₐ/Sₑ', 'σₘ/Sᵤ'], datasets: [{ label: 'Contribución al Daño', data: [0,0], backgroundColor: ['rgba(59,130,246,0.7)','rgba(255,107,53,0.7)'], borderColor: ['#3b82f6','#ff6b35'], borderWidth: 2 }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(13,24,38,0.95)', titleColor: '#ff6b35', bodyColor: '#d6e4f0', borderColor: '#1f3350', borderWidth: 1 } },
+      scales: {
+        y: { beginAtZero: true, max: 1.2, title: { display: true, text: 'Relación de Daño', color: '#7a8ea3', font: { size: 11 } }, grid: { color: '#1f3350' }, ticks: { color: '#7a8ea3' } },
+        x: { grid: { display: false }, ticks: { color: '#7a8ea3' } }
+      }
+    }
+  });
+
+  // S-N CURVE
+  const snCtx = document.getElementById('snChart').getContext('2d');
+  snChart = new Chart(snCtx, {
+    type: 'line',
+    data: { datasets: [
+      { label: 'Curva S-N', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 2, fill: true, pointRadius: 0, tension: 0.3 },
+      { label: 'Límite de Fatiga Sₑ', data: [], borderColor: '#22c55e', borderDash: [6,4], borderWidth: 2, pointRadius: 0, fill: false },
+      { label: 'σₐ real (sin σₘ)', data: [], backgroundColor: '#7a8ea3', borderColor: '#7a8ea3', pointRadius: 6, pointStyle: 'triangle', showLine: false },
+      { label: 'σ_eq Goodman (punto real)', data: [], backgroundColor: '#ff6b35', borderColor: '#ff6b35', pointRadius: 9, pointHoverRadius: 11, showLine: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#d6e4f0', font: { size: 10 } } },
+        tooltip: { backgroundColor: 'rgba(13,24,38,0.95)', titleColor: '#ff6b35', bodyColor: '#d6e4f0', borderColor: '#1f3350', borderWidth: 1,
+          callbacks: {
+            label: function(ctx){
+              if(ctx.dataset.label.includes('σ_eq')) return `σ_eq = ${ctx.parsed.y.toFixed(2)} MPa → N = ${ctx.parsed.x.toExponential(2)} ciclos`;
+              if(ctx.dataset.label.includes('σₐ real')) return `σₐ = ${ctx.parsed.y.toFixed(2)} MPa (ignora σₘ)`;
+              return `σ = ${ctx.parsed.y.toFixed(2)} MPa, N = ${ctx.parsed.x.toExponential(2)} ciclos`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { type: 'logarithmic', position: 'bottom', min: 1e2, max: 1e8, title: { display: true, text: 'Número de Ciclos N', color: '#7a8ea3', font: { size: 11 } }, grid: { color: '#1f3350' },
+          ticks: { color: '#7a8ea3', callback: v => v>=1e6?(v/1e6)+'M':v>=1e3?(v/1e3)+'K':v }
+        },
+        y: { title: { display: true, text: 'Esfuerzo Alternante σ (MPa)', color: '#7a8ea3', font: { size: 11 } }, grid: { color: '#1f3350' }, ticks: { color: '#7a8ea3' } }
+      }
+    }
+  });
+}
+
+function updateCharts(r){
+  const mat = MATERIALS[state.material];
+
+  // GOODMAN
+  const goodmanPoints = [];
+  for(let i=0;i<=50;i++){
+    const sigmaM = (i/50)*mat.Su;
+    const sigmaA = r.Se*(1 - sigmaM/mat.Su);
+    goodmanPoints.push({x: sigmaM, y: sigmaA});
+  }
+  goodmanChart.data.datasets[0].data = goodmanPoints;
+  goodmanChart.data.datasets[1].data = [{x: r.sigma_m, y: r.sigma_a}];
+  const pointColor = r.nG < 0.75 ? '#22c55e' : r.nG < 1.0 ? '#eab308' : '#ef4444';
+  goodmanChart.data.datasets[1].backgroundColor = pointColor;
+  goodmanChart.data.datasets[1].borderColor = pointColor;
+  goodmanChart.options.scales.x.max = mat.Su*1.1;
+  goodmanChart.options.scales.y.max = r.Se*1.1;
+  goodmanChart.update();
+
+  // DAÑO
+  damageChart.data.datasets[0].data = [r.term1, r.term2];
+  damageChart.update();
+
+  // S-N CURVE - usando σ_eq de Goodman
+  const sn = calculateSNCurve(mat, r.Se);
+  const snPoints = [];
+  const N_values = [1e2, 5e2, 1e3, 5e3, 1e4, 5e4, 1e4, 5e4, 1e5, 5e5, 1e6, 5e6, 1e7, 1e8];
+  const uniqueN = [...new Set(N_values)];
+  for(let N of uniqueN){
+    let sigma;
+    if(N <= 1e3) sigma = sn.Sf;
+    else if(N >= 1e6) sigma = r.Se;
+    else sigma = sn.a * Math.pow(N, sn.b);
+    snPoints.push({x: N, y: sigma});
+  }
+
+  const enduranceLine = [{x: 1e6, y: r.Se}, {x: 1e8, y: r.Se}];
+
+  // Punto σₐ real (sin considerar σₘ) - solo informativo
+  const realPoint = { x: 1e8, y: r.sigma_a };
+
+  // Punto σ_eq de Goodman - ESTE ES EL QUE DEFINE LA VIDA REAL
+  const life = estimateLife(r.sigma_eq, r.Se, mat);
+  const eqPoint = {
+    x: isFinite(life.cycles) ? Math.min(life.cycles, 1e8) : 1e8,
+    y: r.sigma_eq
+  };
+
+  snChart.data.datasets[0].data = snPoints;
+  snChart.data.datasets[1].data = enduranceLine;
+  snChart.data.datasets[2].data = [realPoint];
+  snChart.data.datasets[3].data = [eqPoint];
+
+  const maxStress = Math.max(r.sigma_eq * 1.15, sn.Sf * 1.1, r.Se * 1.2);
+  snChart.options.scales.y.max = maxStress;
+  snChart.update();
+
+  // Info panel
+  document.getElementById('infoSigmaA').textContent = r.sigma_a.toFixed(2);
+  document.getElementById('infoSigmaM').textContent = r.sigma_m.toFixed(2);
+  document.getElementById('infoSigmaEq').textContent = r.sigma_eq.toFixed(2);
+
+  const lifeText = isFinite(life.cycles) ?
+    life.cycles.toLocaleString('es-ES',{maximumFractionDigits:0}) + ' ≈ ' + life.cycles.toExponential(2) :
+    '> 10 (infinita)';
+  document.getElementById('lifeEstimate').textContent = lifeText;
+  document.getElementById('fatigueType').textContent = life.type;
+}
+
+// ============================================================
+// THREE.JS
+// ============================================================
+function initThree(){
+  const container = document.getElementById('viewer');
+  const W = container.clientWidth, H = container.clientHeight;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050a12);
+  scene.fog = new THREE.Fog(0x050a12, 8, 18);
+
+  camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 100);
+  camera.position.set(1.8, 1.2, 1.8);
+
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(W,H);
+  renderer.shadowMap.enabled = true;
+  container.appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 1.0;
+  controls.maxDistance = 5;
+  controls.target.set(0,0,0);
+
+  scene.add(new THREE.AmbientLight(0x4a6a8a, 0.5));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(3,4,2); scene.add(dir);
+  const blue = new THREE.PointLight(0x3b82f6, 0.8, 10);
+  blue.position.set(-2,1,1); scene.add(blue);
+  const orange = new THREE.PointLight(0xff6b35, 0.6, 6);
+  orange.position.set(0.5,-0.5,1); scene.add(orange);
+
+  const grid = new THREE.GridHelper(6, 20, 0x1f3350, 0x132236);
+  grid.position.y = -1.1; scene.add(grid);
+
+  const housingGeom = new THREE.CylinderGeometry(HOUSING_RADIUS, HOUSING_RADIUS, 0.5, 48, 1, true);
+  const housingMat = new THREE.MeshPhysicalMaterial({color:0x1e3a5f, transparent:true, opacity:0.12, side:THREE.DoubleSide, metalness:0.3, roughness:0.6});
+  const housing = new THREE.Mesh(housingGeom, housingMat);
+  housing.rotation.x = Math.PI/2; scene.add(housing);
+  const housingWire = new THREE.LineSegments(new THREE.EdgesGeometry(housingGeom), new THREE.LineBasicMaterial({color:0x3b82f6, transparent:true, opacity:0.35}));
+  housingWire.rotation.x = Math.PI/2; scene.add(housingWire);
+
+  const maxRingGeom = new THREE.TorusGeometry(MAX_HAMMER_EXTENT, 0.005, 8, 64);
+  const maxRing = new THREE.Mesh(maxRingGeom, new THREE.MeshBasicMaterial({color:0x22c55e, transparent:true, opacity:0.3}));
+  maxRing.rotation.x = Math.PI/2; scene.add(maxRing);
+
+  rotorGroup = new THREE.Group(); scene.add(rotorGroup);
+
+  const shaftGeom = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 24);
+  const shaft = new THREE.Mesh(shaftGeom, new THREE.MeshStandardMaterial({color:0x4a6a8a, metalness:0.8, roughness:0.3}));
+  shaft.rotation.x = Math.PI/2; rotorGroup.add(shaft);
+
+  const discMat = new THREE.MeshStandardMaterial({color:0x5a7a9a, metalness:0.7, roughness:0.4});
+  for(let i=-1;i<=1;i++){
+    const discGeom = new THREE.CylinderGeometry(DISC_RADIUS, DISC_RADIUS, 0.03, 32);
+    const disc = new THREE.Mesh(discGeom, discMat);
+    disc.rotation.x = Math.PI/2; disc.position.z = i*0.20; rotorGroup.add(disc);
+    const discEdge = new THREE.LineSegments(new THREE.EdgesGeometry(discGeom), new THREE.LineBasicMaterial({color:0x7a9aba, transparent:true, opacity:0.5}));
+    discEdge.rotation.x = Math.PI/2; discEdge.position.z = i*0.20; rotorGroup.add(discEdge);
+  }
+
+  const pinMat = new THREE.MeshStandardMaterial({color:0x8a9bae, metalness:0.6, roughness:0.4});
+  for(let i=0;i<6;i++){
+    const ang = (i/6)*Math.PI*2;
+    const pinLen = 0.15;
+    const pinGeom = new THREE.CylinderGeometry(0.012, 0.012, pinLen, 12);
+    const pin = new THREE.Mesh(pinGeom, pinMat);
+    const pinR = DISC_RADIUS - pinLen/2;
+    pin.position.set(Math.cos(ang)*pinR, Math.sin(ang)*pinR, 0);
+    pin.rotation.z = ang + Math.PI/2; pin.rotation.x = Math.PI/2;
+    rotorGroup.add(pin);
+  }
+
+  hammerGroup = new THREE.Group(); rotorGroup.add(hammerGroup);
+  const hammerMat = new THREE.MeshStandardMaterial({color:0x8a9bae, metalness:0.5, roughness:0.5});
+
+  hammerBody = new THREE.Mesh(new THREE.BoxGeometry(HAMMER_BASE_LENGTH, 0.06, 0.10), hammerMat);
+  hammerBody.position.set(HAMMER_BASE_LENGTH/2, 0, 0); hammerGroup.add(hammerBody);
+
+  hammerHead = new THREE.Mesh(new THREE.BoxGeometry(HAMMER_HEAD_LENGTH, 0.10, 0.14), hammerMat);
+  hammerHead.position.set(HAMMER_BASE_LENGTH + HAMMER_HEAD_LENGTH/2, 0, 0); hammerGroup.add(hammerHead);
+
+  hammerEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(HAMMER_BASE_LENGTH + HAMMER_HEAD_LENGTH, 0.10, 0.14)), new THREE.LineBasicMaterial({color:0xb0c0d0, transparent:true, opacity:0.6}));
+  hammerEdge.position.set((HAMMER_BASE_LENGTH + HAMMER_HEAD_LENGTH)/2, 0, 0); hammerGroup.add(hammerEdge);
+
+  const holeGeom = new THREE.TorusGeometry(0.018, 0.005, 8, 16);
+  const hole = new THREE.Mesh(holeGeom, new THREE.MeshStandardMaterial({color:0x0a0a0a, metalness:0.3, roughness:0.9}));
+  hole.position.set(0,0,0); hole.rotation.y = Math.PI/2; hammerGroup.add(hole);
+
+  criticalRing = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.006, 16, 32), new THREE.MeshBasicMaterial({color:0xff6b35, transparent:true, opacity:0.85}));
+  criticalRing.position.set(0,0,0); criticalRing.rotation.y = Math.PI/2; hammerGroup.add(criticalRing);
+
+  glowRing = new THREE.Mesh(new THREE.TorusGeometry(0.040, 0.010, 16, 32), new THREE.MeshBasicMaterial({color:0xff6b35, transparent:true, opacity:0.25}));
+  glowRing.position.set(0,0,0); glowRing.rotation.y = Math.PI/2; hammerGroup.add(glowRing);
+
+  crackPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.10, 0.10), new THREE.MeshBasicMaterial({color:0x3b82f6, transparent:true, opacity:0.35, side:THREE.DoubleSide}));
+  crackPlane.position.set(HAMMER_BASE_LENGTH/2, 0, 0); crackPlane.rotation.y = Math.PI/2; hammerGroup.add(crackPlane);
+
+  const crackPts = [
+    new THREE.Vector3(HAMMER_BASE_LENGTH/2, -0.05, 0.001),
+    new THREE.Vector3(HAMMER_BASE_LENGTH/2, -0.01, 0.001),
+    new THREE.Vector3(HAMMER_BASE_LENGTH/2,  0.02, 0.001),
+    new THREE.Vector3(HAMMER_BASE_LENGTH/2,  0.05, 0.001)
+  ];
+  hammerGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(crackPts), new THREE.LineBasicMaterial({color:0xff6b35})));
+
+  scene.add(new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,-0.7), 0.25, 0x22c55e, 0.06, 0.04));
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function onResize(){
+  const container = document.getElementById('viewer');
+  const W = container.clientWidth, H = container.clientHeight;
+  camera.aspect = W/H; camera.updateProjectionMatrix(); renderer.setSize(W,H);
+}
+
+function updateHammerVisuals(){
+  if(!hammerGroup) return;
+  const massScale = 0.75 + (state.m - 2) / 8 * 0.5;
+  const hammerTotalLen = (HAMMER_BASE_LENGTH + HAMMER_HEAD_LENGTH) * massScale;
+  const maxAllowedPos = MAX_HAMMER_EXTENT - hammerTotalLen - 0.05;
+  const rawPos = 0.20 + (state.R - 0.2) / 0.4 * 0.40;
+  const radialPos = Math.min(rawPos, maxAllowedPos);
+  hammerGroup.position.set(radialPos, 0, 0);
+  hammerBody.scale.set(massScale, massScale, massScale);
+  hammerHead.scale.set(massScale, massScale, massScale);
+  hammerBody.position.set(HAMMER_BASE_LENGTH/2, 0, 0);
+  hammerHead.position.set(HAMMER_BASE_LENGTH + HAMMER_HEAD_LENGTH/2, 0, 0);
+  hammerEdge.position.set((HAMMER_BASE_LENGTH + HAMMER_HEAD_LENGTH)/2, 0, 0);
+  criticalRing.position.set(0,0,0); glowRing.position.set(0,0,0);
+  crackPlane.position.set(HAMMER_BASE_LENGTH/2, 0, 0);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const omegaRad = state.RPM * 2*Math.PI/60;
+  rotorGroup.rotation.z += omegaRad * dt * 0.05;
+  const severity = computeSeverity();
+  const pulse = 0.6 + 0.4*Math.sin(clock.elapsedTime*4);
+  criticalRing.material.opacity = 0.6 + 0.25*pulse*severity;
+  glowRing.material.opacity = 0.15 + 0.10*pulse*severity;
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+function computeSeverity(){
+  const omega = state.RPM * 2*Math.PI/60;
+  const Fc = state.m * omega*omega * state.R;
+  const A = PARAMS.dp * PARAMS.t;
+  const sigma_m = state.Kt * (Fc/A) / 1e6;
+  const sigma_a = PARAMS.Cd * sigma_m;
+  const Se = calculateEnduranceLimit();
+  const nG = sigma_a/Se + sigma_m/MATERIALS[state.material].Su;
+  return Math.min(nG/1.2, 1.5);
+}
+
+function calculateEnduranceLimit(){
+  const mat = MATERIALS[state.material];
+  const Se_prime = 0.5 * mat.Su;
+  const Ka = state.finishFactor;
+  const Kb = 0.85;
+  const Kc = 0.897;
+  return Se_prime * Ka * Kb * Kc;
+}
+
+function compute(){
+  const mat = MATERIALS[state.material];
+  const omega = state.RPM * 2*Math.PI/60;
+  const Vt = omega * state.R;
+  const Ek = 0.5 * state.m * Vt*Vt;
+  const Fc = state.m * omega*omega * state.R;
+  const A = PARAMS.dp * PARAMS.t;
+  const sigma_nom = Fc / A / 1e6;
+  const sigma_m = state.Kt * sigma_nom;
+  const sigma_a = PARAMS.Cd * sigma_m;
+  const Se = calculateEnduranceLimit();
+  const term1 = sigma_a / Se;
+  const term2 = sigma_m / mat.Su;
+  const nG = term1 + term2;
+
+  // Esfuerzo equivalente de Goodman: σ_eq = σₐ / (1 - σₘ/Su)
+  // Este es el esfuerzo alternante puro que produce el MISMO daño que σₐ + σₘ
+  let sigma_eq;
+  if(mat.Su - sigma_m > 0.001){
+    sigma_eq = sigma_a / (1 - sigma_m/mat.Su);
+  } else {
+    sigma_eq = Infinity; // σₘ ≥ Su → falla estática inmediata
+  }
+
+  return {omega, Vt, Ek, Fc, A, sigma_nom, sigma_m, sigma_a, term1, term2, nG, Se, Su: mat.Su, sigma_eq};
+}
+
+function fmt(n, d=2){
+  if(!isFinite(n)) return "∞";
+  return n.toLocaleString('es-ES',{minimumFractionDigits:d, maximumFractionDigits:d});
+}
+
+function updateUI(){
+  const r = compute();
+  const mat = MATERIALS[state.material];
+
+  document.getElementById('sRPM').value = state.RPM;
+  document.getElementById('sM').value = state.m;
+  document.getElementById('sR').value = state.R;
+  document.getElementById('sKt').value = state.Kt;
+  document.getElementById('vRPM').textContent = state.RPM;
+  document.getElementById('vM').textContent = fmt(state.m,1);
+  document.getElementById('vR').textContent = fmt(state.R,2);
+  document.getElementById('vKt').textContent = fmt(state.Kt,2);
+
+  const finishName = state.finishFactor === '1.0' ? 'Pulido' :
+                     state.finishFactor === '0.90' ? 'Mecanizado' :
+                     state.finishFactor === '0.85' ? 'Mecanizado rugoso' :
+                     state.finishFactor === '0.60' ? 'Forjado' : 'Forjado rugoso';
+
+  document.getElementById('inputData').innerHTML = `
+    <div class="formula">ω = ${state.RPM} RPM = ${state.RPM} × 2π/60 = <b>${fmt(r.omega,2)} rad/s</b></div>
+    <div class="formula">m = <b>${fmt(state.m,1)} kg</b></div>
+    <div class="formula">R = <b>${fmt(state.R,2)} m</b></div>
+    <div class="formula">K<sub>t</sub> = <b>${fmt(state.Kt,2)}</b></div>
+    <div class="formula">Material: <b>${mat.name}</b> (S<sub>u</sub> = ${mat.Su} MPa, S<sub>y</sub> = ${mat.Sy} MPa)</div>
+    <div class="formula">Acabado: <b>${finishName}</b> (K<sub>a</sub> = ${state.finishFactor})</div>
+    <div class="formula">d<sub>p</sub> = <b>${PARAMS.dp*1000} mm</b> | t = <b>${PARAMS.t*1000} mm</b> | C<sub>d</sub> = <b>${PARAMS.Cd}</b></div>
+  `;
+
+  document.getElementById('step1_1').innerHTML = `ω = RPM × (2π/60) = ${state.RPM} × (2π/60) = <b>${fmt(r.omega,2)} rad/s</b>`;
+  document.getElementById('step1_2').innerHTML = `V<sub>t</sub> = ω × R = ${fmt(r.omega,2)} × ${fmt(state.R,2)} = <b>${fmt(r.Vt,2)} m/s</b>`;
+  document.getElementById('step1_3').innerHTML = `E<sub>k</sub> = ½ × m × V<sub>t</sub>² = ½ × ${fmt(state.m,1)} × (${fmt(r.Vt,2)})² = <b>${fmt(r.Ek,1)} J</b>`;
+  document.getElementById('step2_1').innerHTML = `F<sub>c</sub> = m × ω² × R = ${fmt(state.m,1)} × (${fmt(r.omega,2)})² × ${fmt(state.R,2)} = <b>${fmt(r.Fc,0)} N</b>`;
+
+  const A_mm2 = r.A * 1e6;
+  document.getElementById('step3_1').innerHTML = `A = d<sub>p</sub> × t = ${PARAMS.dp*1000} × ${PARAMS.t*1000} = <b>${fmt(A_mm2,1)} mm²</b> = ${fmt(r.A,6)} m²`;
+  document.getElementById('step3_2').innerHTML = `σ<sub>nom</sub> = F<sub>c</sub> / A = ${fmt(r.Fc,0)} / ${fmt(r.A,6)} = ${fmt(r.sigma_nom*1e6,1)} Pa = <b>${fmt(r.sigma_nom,2)} MPa</b>`;
+  document.getElementById('step3_3').innerHTML = `σ<sub>m</sub> = K<sub>t</sub> × σ<sub>nom</sub> = ${fmt(state.Kt,2)} × ${fmt(r.sigma_nom,2)} = <b>${fmt(r.sigma_m,2)} MPa</b>`;
+  document.getElementById('step3_4').innerHTML = `σ<sub>a</sub> = C<sub>d</sub> × σ<sub>m</sub> = ${PARAMS.Cd} × ${fmt(r.sigma_m,2)} = <b>${fmt(r.sigma_a,2)} MPa</b>`;
+
+  document.getElementById('step4_1').innerHTML = `σ<sub>a</sub>/S<sub>e</sub> = ${fmt(r.sigma_a,2)} / ${fmt(r.Se,2)} = <b>${fmt(r.term1,4)}</b>`;
+  document.getElementById('step4_2').innerHTML = `σ<sub>m</sub>/S<sub>u</sub> = ${fmt(r.sigma_m,2)} / ${r.Su} = <b>${fmt(r.term2,4)}</b>`;
+  document.getElementById('step4_3').innerHTML = `n<sub>G</sub> = (σ<sub>a</sub>/S<sub>e</sub>) + (σ<sub>m</sub>/S<sub>u</sub>) = ${fmt(r.term1,4)} + ${fmt(r.term2,4)} = <b>${fmt(r.nG,4)}</b>`;
+
+  // Paso 4.4: Esfuerzo equivalente de Goodman
+  const sigmaEqText = isFinite(r.sigma_eq) ? fmt(r.sigma_eq,2) : '∞ (σₘ ≥ Sᵤ)';
+  document.getElementById('step4_4').innerHTML = `σ<sub>eq</sub> = σ<sub>a</sub> / (1 - σ<sub>m</sub>/S<sub>u</sub>) = ${fmt(r.sigma_a,2)} / (1 - ${fmt(r.sigma_m,2)}/${r.Su}) = ${fmt(r.sigma_a,2)} / ${fmt(1 - r.sigma_m/r.Su, 4)} = <b>${sigmaEqText} MPa</b>`;
+
+  document.getElementById('rOmega').innerHTML = fmt(r.omega,2) + '<small>rad/s</small>';
+  document.getElementById('rVt').innerHTML = fmt(r.Vt,2) + '<small>m/s</small>';
+  document.getElementById('rEk').innerHTML = fmt(r.Ek,1) + '<small>J</small>';
+  document.getElementById('rFc').innerHTML = fmt(r.Fc,0) + '<small>N</small>';
+
+  document.getElementById('tSu').innerHTML = '<b>' + r.Su + '</b>';
+  document.getElementById('tSe').innerHTML = '<b>' + fmt(r.Se,2) + '</b>';
+  document.getElementById('tA').innerHTML = '<b>' + fmt(A_mm2,1) + '</b>';
+  document.getElementById('tSnom').innerHTML = '<b>' + fmt(r.sigma_nom,2) + '</b>';
+  document.getElementById('tSm').innerHTML = '<b>' + fmt(r.sigma_m,2) + '</b>';
+  document.getElementById('tSa').innerHTML = '<b>' + fmt(r.sigma_a,2) + '</b>';
+  document.getElementById('tSeq').innerHTML = '<b>' + sigmaEqText + '</b>';
+
+  const goodmanCheck = r.nG <= 1 ? '\\le 1 \\quad \\checkmark \\text{ (seguro)}' : '> 1 \\quad \\boldsymbol{\\times} \\text{ (falla)}';
+  document.getElementById('eqGoodman').innerHTML = `$$\\frac{\\sigma_a}{S_e} + \\frac{\\sigma_m}{S_u} = \\frac{${fmt(r.sigma_a,2)}}{${fmt(r.Se,2)}} + \\frac{${fmt(r.sigma_m,2)}}{${r.Su}} = ${fmt(r.nG,4)} \\; ${goodmanCheck}$$`;
+  document.getElementById('eqRatio').innerHTML = `$$n_G = ${fmt(r.nG,4)} \\quad ${r.nG < 1 ? '\\;\\checkmark\\;\\text{(seguro)}' : '\\;\\boldsymbol{\\times}\\;\\text{(falla inminente)}'}$$`;
+
+  updateHammerVisuals();
+  updateCharts(r);
+  updateTraffic(r.nG);
+
+  renderMathInElement(document.getElementById('content'), {
+    delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
+    throwOnError: false
+  });
+}
+
+function updateTraffic(nG){
+  const Lg = document.getElementById('Lgreen');
+  const Ly = document.getElementById('Lyellow');
+  const Lr = document.getElementById('Lred');
+  const st = document.getElementById('statusTxt');
+  const ds = document.getElementById('statusDesc');
+  const rt = document.getElementById('ratioTxt');
+
+  Lg.classList.remove('on','green');
+  Ly.classList.remove('on','yellow');
+  Lr.classList.remove('on','red');
+  st.classList.remove('safe','warn','danger');
+
+  rt.innerHTML = `n<sub>G</sub> = ${fmt(nG,4)}`;
+
+  if(nG < 0.75){
+    Lg.classList.add('on','green');
+    st.textContent = '● DISEÑO SEGURO';
+    st.classList.add('safe');
+    ds.textContent = 'Margen de fatiga adecuado. Vida útil esperada > 10⁷ ciclos.';
+  } else if(nG < 1.0){
+    Ly.classList.add('on','yellow');
+    st.textContent = '● ZONA DE ADVERTENCIA';
+    st.classList.add('warn');
+    ds.textContent = 'Relación de daño elevada. Reducir Kt o velocidad operativa.';
+  } else {
+    Lr.classList.add('on','red');
+    st.textContent = '● RIESGO INMINENTE DE FALLA';
+    st.classList.add('danger');
+    ds.textContent = 'Criterio de Goodman superado. Grieta por fatiga en propagación.';
+  }
+}
+
+function bindSliders(){
+  const bind = (id, key, parse) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', e => { state[key] = parse(e.target.value); updateUI(); });
+  };
+  bind('sRPM','RPM', v => parseInt(v));
+  bind('sM',  'm',   v => parseFloat(v));
+  bind('sR',  'R',   v => parseFloat(v));
+  bind('sKt', 'Kt',  v => parseFloat(v));
+}
+
+function bindSelectors(){
+  document.getElementById('materialSelect').addEventListener('change', e => { state.material = e.target.value; updateUI(); });
+  document.getElementById('finishSelect').addEventListener('change', e => { state.finishFactor = parseFloat(e.target.value); updateUI(); });
+}
+
+window.addEventListener('load', () => {
+  bindSliders();
+  bindSelectors();
+  initCharts();
+  initThree();
+  updateUI();
+});
+</script>
+</body>
+</html>
