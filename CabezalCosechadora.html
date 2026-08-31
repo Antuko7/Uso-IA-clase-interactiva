@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Análisis de Fatiga Multiaxial — Cabezal de Cosechadora (Biela-Manivela)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{--bg:#0f1419;--panel:#1a2029;--accent:#00c2ff;--accent2:#ff8a00;--warn:#ff3860;--ok:#23d160;--text:#e6edf3;--muted:#8b949e;--border:#2a3441}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  header{background:linear-gradient(135deg,#0a2540,#1a4d7a);padding:25px 30px;border-bottom:3px solid var(--accent)}
+  header h1{font-size:1.8em;margin-bottom:5px}
+  header .subtitle{color:var(--accent);font-size:0.95em}
+  .container{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .full-width{grid-column:1/-1}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+  .panel h2{color:var(--accent);font-size:1.2em;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:8px;display:flex;align-items:center;gap:8px}
+  .panel h3{color:var(--accent2);font-size:1em;margin:12px 0 8px}
+  #viewer3d{width:100%;height:420px;background:#0a1628;border-radius:8px;border:1px solid var(--border);position:relative;overflow:hidden}
+  #viewer3d canvas{display:block}
+  .viewer-info{display:flex;gap:15px;margin-top:10px;flex-wrap:wrap;font-size:0.85em;color:var(--muted)}
+  .viewer-info span{background:#0a0f17;padding:4px 10px;border-radius:4px;border:1px solid var(--border)}
+  .viewer-info .crit{color:var(--accent2);border-color:var(--accent2)}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .control-group{display:flex;flex-direction:column;gap:4px}
+  .control-group label{font-size:0.85em;color:var(--muted)}
+  .control-group select{background:#0a0f17;color:var(--text);border:1px solid var(--border);padding:7px 10px;border-radius:5px;font-size:0.9em;width:100%}
+  .control-group input[type=range]{padding:0;cursor:pointer;width:100%;accent-color:var(--accent)}
+  .val-display{color:var(--accent);font-weight:bold;font-family:monospace;font-size:0.9em;display:block;margin-top:2px;min-height:1.2em}
+  .formula-box{background:#0a0f17;border-left:3px solid var(--accent);padding:12px;margin:10px 0;border-radius:4px;overflow-x:auto}
+  .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px}
+  .result-card{background:#0a0f17;border:1px solid var(--border);padding:10px;border-radius:6px;text-align:center}
+  .result-card .label{font-size:0.75em;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+  .result-card .value{font-size:1.3em;color:var(--accent);font-weight:bold;font-family:monospace;margin:4px 0}
+  .result-card .unit{font-size:0.75em;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:0.9em}
+  th{background:#0a2540;color:var(--accent);padding:8px;text-align:left;border:1px solid var(--border)}
+  td{padding:7px 8px;border:1px solid var(--border);font-family:monospace}
+  tr:nth-child(even) td{background:#0a0f17}
+  .chart-container{position:relative;height:300px;margin-top:10px}
+  .conclusion{background:#0a2540;border-left:4px solid var(--accent2);padding:12px 15px;margin:8px 0;border-radius:4px;font-size:0.92em}
+  .conclusion strong{color:var(--accent2)}
+  .status-ok{color:var(--ok);font-weight:bold}
+  .status-warn{color:var(--warn);font-weight:bold}
+  .katex{font-size:1em !important}
+  .badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:0.75em;font-weight:bold;margin-left:8px}
+  .badge-multiaxial{background:#4d2c91;color:#fff}
+  footer{text-align:center;padding:20px;color:var(--muted);font-size:0.85em;border-top:1px solid var(--border);margin-top:30px}
+  .error-msg{color:var(--warn);padding:15px;text-align:center;font-family:monospace}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚙ Análisis de Fatiga Multiaxial — Cabezal de Cosechadora</h1>
+  <div class="subtitle">Curso: Análisis y Diseño de Máquinas | Mecanismo Biela-Manivela | Módulo 05 | 31·Ago·2026</div>
+</header>
+
+<div class="container">
+
+  <div class="panel full-width">
+    <h2>🎥 Visualizador 3D — Mecanismo Biela-Manivela del Cabezal <span class="badge badge-multiaxial">THREE.JS · WEBGL</span></h2>
+    <div id="viewer3d"></div>
+    <div class="viewer-info">
+      <span>◉ Cámara: OrbitControls</span>
+      <span>⟲ Animación cinemática en tiempo real</span>
+      <span class="crit">⚠ Zona crítica en rojo (munón de la biela)</span>
+      <span>🟦 Barra de cuchillas (carga de corte)</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>🔧 Configuración del Sistema</h2>
+    <h3>Mecanismo</h3>
+    <div class="controls">
+      <div class="control-group">
+        <label>Radio de manivela <i>r</i> (mm)</label>
+        <input type="range" id="r" min="20" max="80" value="35" step="1">
+<span class="val-display" id="r-val">35 mm</span>
+      </div>
+      <div class="control-group">
+        <label>Longitud de biela <i>l</i> (mm)</label>
+        <input type="range" id="l" min="150" max="350" value="250" step="5">
+<span class="val-display" id="l-val">250 mm</span>
+      </div>
+      <div class="control-group">
+        <label>Velocidad angular ω (RPM)</label>
+        <input type="range" id="rpm" min="300" max="1500" value="500" step="50">
+<span class="val-display" id="rpm-val">500 RPM</span>
+      </div>
+      <div class="control-group">
+        <label>Masa de la barra de cuchillas <i>m<sub>b</sub></i> (kg)</label>
+        <input type="range" id="mb" min="5" max="40" value="12" step="0.5">
+<span class="val-display" id="mb-val">12.0 kg</span>
+      </div>
+      <div class="control-group">
+        <label>Fuerza de corte pico <i>F<sub>c</sub></i> (N)</label>
+        <input type="range" id="Fc" min="200" max="2500" value="600" step="50">
+<span class="val-display" id="Fc-val">600 N</span>
+      </div>
+      <div class="control-group">
+        <label>Diámetro de la biela <i>d</i> (mm)</label>
+        <input type="range" id="d" min="15" max="50" value="35" step="1">
+<span class="val-display" id="d-val">35 mm</span>
+      </div>
+    </div>
+    <h3>Material de la Biela</h3>
+    <div class="control-group">
+      <select id="material">
+        <option value="1045">AISI 1045 — Su = 620 MPa, Sy = 370 MPa</option>
+        <option value="4140" selected>AISI 4140 — Su = 850 MPa, Sy = 655 MPa</option>
+        <option value="4340">AISI 4340 — Su = 1000 MPa, Sy = 860 MPa</option>
+        <option value="1020">AISI 1020 — Su = 420 MPa, Sy = 250 MPa</option>
+      </select>
+    </div>
+    <h3>Condiciones de Superficie y Geometría</h3>
+    <div class="controls">
+      <div class="control-group">
+        <label>Acabado superficial</label>
+        <select id="acabado">
+          <option value="1.0">Pulido (Ka = 1.00)</option>
+          <option value="0.9" selected>Mecanizado (Ka = 0.90)</option>
+          <option value="0.85">Mecanizado rugoso (Ka = 0.85)</option>
+          <option value="0.60">Forjado (Ka = 0.60)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Factor de concentración K<sub>t</sub> (munón)</label>
+        <input type="range" id="Kt" min="1.5" max="3.5" value="1.8" step="0.1">
+<span class="val-display" id="Kt-val">1.80</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>📋 Descripción de Variables</h2>
+    <table>
+      <tr><th>Símbolo</th><th>Descripción</th><th>Típico</th></tr>
+      <tr><td>r</td><td>Radio de la manivela (excéntrica)</td><td>20–80 mm</td></tr>
+      <tr><td>l</td><td>Longitud de la biela</td><td>150–350 mm</td></tr>
+      <tr><td>λ = r/l</td><td>Relación geométrica del mecanismo</td><td>0.15–0.35</td></tr>
+      <tr><td>ω</td><td>Velocidad angular de la manivela</td><td>rad/s</td></tr>
+      <tr><td>θ</td><td>Ángulo de giro de la manivela</td><td>rad</td></tr>
+      <tr><td>m<sub>b</sub></td><td>Masa de la barra de cuchillas</td><td>5–40 kg</td></tr>
+      <tr><td>F<sub>c</sub></td><td>Fuerza de corte (resistencia del cultivo)</td><td>200–2500 N</td></tr>
+      <tr><td>d</td><td>Diámetro de la sección de la biela</td><td>15–50 mm</td></tr>
+      <tr><td>σ<sub>x</sub>, σ<sub>y</sub></td><td>Esfuerzos normales multiaxiales</td><td>MPa</td></tr>
+      <tr><td>τ<sub>xy</sub></td><td>Esfuerzo cortante (torsión + corte directo)</td><td>MPa</td></tr>
+      <tr><td>σ'<sub>vm</sub></td><td>Esfuerzo equivalente de von Mises</td><td>MPa</td></tr>
+      <tr><td>K<sub>t</sub></td><td>Factor de concentración de esfuerzo</td><td>1.5–3.5</td></tr>
+      <tr><td>S<sub>u</sub>, S<sub>y</sub></td><td>Resistencia última y de fluencia</td><td>MPa</td></tr>
+      <tr><td>S<sub>e</sub></td><td>Límite de fatiga corregido</td><td>MPa</td></tr>
+    </table>
+  </div>
+
+  <div class="panel full-width">
+    <h2>📐 1 · Cinemática del Mecanismo Biela-Manivela</h2>
+    <div class="formula-box">
+      <p><strong>Posición de la barra de cuchillas:</strong></p>
+      $$x(\theta) = r\cos\theta + \sqrt{l^2 - r^2\sin^2\theta}$$
+      <p><strong>Velocidad:</strong></p>
+      $$v(\theta) = -r\omega\left[\sin\theta + \frac{r\sin(2\theta)}{2\sqrt{l^2 - r^2\sin^2\theta}}\right]$$
+      <p><strong>Aceleración (aproximación de primer orden, λ = r/l ≪ 1):</strong></p>
+      $$a(\theta) \approx -r\omega^2\left[\cos\theta + \lambda\cos(2\theta)\right]$$
+    </div>
+    <div class="result-grid">
+      <div class="result-card"><div class="label">ω (rad/s)</div><div class="value" id="res-omega">—</div><div class="unit">rad/s</div></div>
+      <div class="result-card"><div class="label">λ = r/l</div><div class="value" id="res-lambda">—</div><div class="unit">adim</div></div>
+      <div class="result-card"><div class="label">Carrera 2r</div><div class="value" id="res-carrera">—</div><div class="unit">mm</div></div>
+      <div class="result-card"><div class="label">Aceleración máx</div><div class="value" id="res-amax">—</div><div class="unit">m/s²</div></div>
+      <div class="result-card"><div class="label">Fuerza inercial máx</div><div class="value" id="res-Fin">—</div><div class="unit">N</div></div>
+    </div>
+  </div>
+
+  <div class="panel full-width">
+    <h2>🔩 2 · Estado Multiaxial de Esfuerzos en la Biela</h2>
+    <p style="color:var(--muted);font-size:0.9em">La biela está sometida simultáneamente a: <b>axial</b> (F<sub>inercia</sub> + F<sub>corte</sub>), <b>flexión</b> y <b>torsión</b>. La fuerza de inercia aporta componente alternante; la fuerza de corte aporta componente media.</p>
+    <div class="formula-box">
+      <p><strong>Fuerza axial total:</strong> \(F(\theta) = m_b \cdot a(\theta) + F_c\)</p>
+      <p><strong>Esfuerzo normal axial:</strong> \(\sigma_x = \dfrac{F}{A}\), donde \(A = \dfrac{\pi d^2}{4}\)</p>
+      <p><strong>Esfuerzo de flexión:</strong> \(\sigma_y = \dfrac{32 M_f}{\pi d^3}\), con \(M_f \approx 0.05 \cdot F \cdot l\)</p>
+      <p><strong>Esfuerzo cortante por torsión:</strong> \(\tau_{xy} = \dfrac{16 T}{\pi d^3}\), con \(T \approx 0.03 \cdot F \cdot r\)</p>
+      <p><strong>Esfuerzo equivalente de von Mises:</strong></p>
+      $$\sigma'_{vm} = \sqrt{\sigma_x^2 - \sigma_x\sigma_y + \sigma_y^2 + 3\tau_{xy}^2}$$
+    </div>
+    <div class="result-grid">
+      <div class="result-card"><div class="label">Área A</div><div class="value" id="res-A">—</div><div class="unit">mm²</div></div>
+      <div class="result-card"><div class="label">σ<sub>x,media</sub></div><div class="value" id="res-sxm">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">σ<sub>x,alt</sub></div><div class="value" id="res-sxa">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">σ<sub>y,media</sub></div><div class="value" id="res-sym">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">τ<sub>xy,alt</sub></div><div class="value" id="res-taua">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">σ'<sub>vm,media</sub></div><div class="value" id="res-svm">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">σ'<sub>vm,alt</sub></div><div class="value" id="res-sva">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">σ'<sub>vm,alt</sub> · K<sub>t</sub></div><div class="value" id="res-svaK">—</div><div class="unit">MPa</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>📈 3 · Curva S-N (Wöhler)</h2>
+    <div class="formula-box">
+      <p><strong>Límite de fatiga base:</strong> \(S'_e = 0.5 \cdot S_u\)</p>
+      <p><strong>Límite corregido:</strong> \(S_e = K_a \cdot K_b \cdot K_c \cdot S'_e\)</p>
+      <p style="font-size:0.85em;color:var(--muted)">K<sub>b</sub>=0.87 (diámetro), K<sub>c</sub>=1.0</p>
+      <p><strong>Vida N:</strong></p>
+      $$\sigma_a = S_f \cdot \left(\frac{N}{10^3}\right)^{b}, \quad b = \frac{\log(S_e/S_f)}{\log(10^6/10^3)}$$
+    </div>
+    <div class="result-grid">
+      <div class="result-card"><div class="label">S'<sub>e</sub></div><div class="value" id="res-Se0">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">S<sub>e</sub></div><div class="value" id="res-Se">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">Vida N estimada</div><div class="value" id="res-N">—</div><div class="unit">ciclos</div></div>
+    </div>
+    <div class="chart-container"><canvas id="chartSN"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>🎯 4 · Criterio de Goodman Modificado Multiaxial</h2>
+    <div class="formula-box">
+      <p><strong>Esfuerzo equivalente de Goodman:</strong></p>
+      $$\sigma_{eq} = \frac{\sigma'_{vm,a} \cdot K_t}{1 - \dfrac{\sigma'_{vm,m}}{S_u}}$$
+      <p><strong>Factor de seguridad:</strong> \(n_G = \dfrac{S_e}{\sigma_{eq}}\)</p>
+      <p><strong>Criterio:</strong> \(n_G > 1\) ⇒ diseño seguro; \(n_G < 1\) ⇒ falla por fatiga</p>
+    </div>
+    <div class="result-grid">
+      <div class="result-card"><div class="label">σ<sub>eq</sub> (Goodman)</div><div class="value" id="res-Seq">—</div><div class="unit">MPa</div></div>
+      <div class="result-card"><div class="label">Factor n<sub>G</sub></div><div class="value" id="res-nG">—</div><div class="unit">adim</div></div>
+      <div class="result-card"><div class="label">Estado</div><div class="value" id="res-status">—</div><div class="unit">&nbsp;</div></div>
+    </div>
+    <div class="chart-container"><canvas id="chartGoodman"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>📊 5 · Contribución al Daño por Fatiga Multiaxial</h2>
+    <p style="color:var(--muted);font-size:0.9em">Proporción de cada componente de esfuerzo en el valor de von Mises.</p>
+    <div class="chart-container"><canvas id="chartDamage"></canvas></div>
+  </div>
+
+  <div class="panel full-width">
+    <h2>🎓 6 · Conclusiones de Ingeniería</h2>
+    <div class="conclusion">• La <strong>relación λ = r/l</strong> gobierna la forma de la aceleración: valores altos (λ > 0.3) aumentan la componente armónica 2ω, incrementando σ<sub>a</sub> y reduciendo la vida.</div>
+    <div class="conclusion">• El <strong>estado multiaxial</strong> (σ<sub>x</sub>, σ<sub>y</sub>, τ<sub>xy</sub>) se unifica mediante <strong>von Mises</strong>: ignorar torsión o flexión subestima el daño hasta en un 40%.</div>
+    <div class="conclusion">• El <strong>factor K<sub>t</sub></strong> en el munón de la biela multiplica σ<sub>a</sub> local. Mantener K<sub>t</sub> ≤ 2.0 con radios generosos (r ≥ 0.1d).</div>
+    <div class="conclusion">• La <strong>fuerza de corte F<sub>c</sub></strong> aporta componente media (σ<sub>m</sub> ↑), desplazando el punto operativo hacia la derecha en el diagrama de Goodman y reduciendo n<sub>G</sub>.</div>
+    <div class="conclusion">• El <strong>acabado superficial</strong> degrada S<sub>e</sub> directamente: pasar de pulido a forjado puede reducir la vida en un orden de magnitud.</div>
+    <div class="conclusion">• <strong>Recomendación:</strong> biela en AISI 4140 tratado (Su ≥ 850 MPa), acabado mecanizado (Ra < 1.6 μm), inspección por partículas magnéticas cada 200 h en muñones.</div>
+  </div>
+
+</div>
+
+<footer>Análisis y Diseño de Máquinas — Cabezal de Cosechadora · Fatiga Multiaxial Biela-Manivela · © 2026</footer>
+
+<script>
+// ============================================
+// DATOS DE MATERIALES
+// ============================================
+const materials = {
+  '1045':{Su:620, Sy:370},
+  '4140':{Su:850, Sy:655},
+  '4340':{Su:1000, Sy:860},
+  '1020':{Su:420, Sy:250}
+};
+
+let chartSN, chartGoodman, chartDamage;
+
+// ============================================
+// INICIALIZACIÓN DE GRÁFICAS
+// ============================================
+function initCharts(){
+  if(typeof Chart === 'undefined'){
+    console.error('Chart.js no cargado');
+    return;
+  }
+  
+  // Gráfica S-N
+  const ctxSN = document.getElementById('chartSN');
+  if(ctxSN){
+    chartSN = new Chart(ctxSN, {
+      type:'line',
+      data:{
+        datasets:[
+          {
+            label:'Curva S-N',
+            data:[],
+            borderColor:'#00c2ff',
+            backgroundColor:'rgba(0,194,255,0.1)',
+            fill:true,
+            tension:0.1,
+            pointRadius:0,
+            borderWidth:2,
+            order:2
+          },
+          {
+            label:'Punto operativo',
+            data:[],
+            borderColor:'#ff3860',
+            backgroundColor:'#ff3860',
+            pointRadius:10,
+            pointStyle:'crossRot',
+            showLine:false,
+            borderWidth:3,
+            order:1
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        scales:{
+          x:{
+            type:'logarithmic',
+            title:{display:true, text:'N (ciclos)', color:'#e6edf3'},
+            ticks:{color:'#8b949e'},
+            grid:{color:'#2a3441'},
+            min:100,
+            max:1e8
+          },
+          y:{
+            title:{display:true, text:'σ_a (MPa)', color:'#e6edf3'},
+            ticks:{color:'#8b949e'},
+            grid:{color:'#2a3441'},
+            min:0
+          }
+        },
+        plugins:{legend:{labels:{color:'#e6edf3'}}}
+      }
+    });
+  }
+
+// Gráfica Goodman con zonas coloreadas
+const ctxG = document.getElementById('chartGoodman');
+if(ctxG){
+  chartGoodman = new Chart(ctxG, {
+    type:'scatter',
+    data:{
+      datasets:[
+        {
+          label:'ZONA SEGURA (n_G > 1)',
+          data:[],
+          backgroundColor:'rgba(35, 209, 96, 0.35)',
+          borderColor:'#23d160',
+          borderWidth:2,
+          pointRadius:0,
+          showLine:true,
+          fill:true,
+          tension:0,
+          order:3
+        },
+        {
+          label:'ZONA DE FALLA (n_G < 1)',
+          data:[],
+          backgroundColor:'rgba(255, 56, 96, 0.25)',
+          borderColor:'#ff3860',
+          borderWidth:2,
+          pointRadius:0,
+          showLine:true,
+          fill:true,
+          tension:0,
+          order:4
+        },
+        {
+          label:'Línea de Goodman',
+          data:[],
+          borderColor:'#00c2ff',
+          backgroundColor:'#00c2ff',
+          borderWidth:3,
+          pointRadius:0,
+          showLine:true,
+          tension:0,
+          fill:false,
+          order:2
+        },
+        {
+          label:'Punto operativo (σ_m, σ_a)',
+          data:[],
+          borderColor:'#ff3860',
+          backgroundColor:'#ff3860',
+          pointRadius:14,
+          pointStyle:'circle',
+          showLine:false,
+          borderWidth:3,
+          order:1
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      scales:{
+        x:{
+          type:'linear',
+          title:{display:true, text:'σ_m (MPa)', color:'#e6edf3', font:{size:14}},
+          min:0,
+          ticks:{color:'#8b949e'},
+          grid:{color:'#2a3441'}
+        },
+        y:{
+          type:'linear',
+          title:{display:true, text:'σ_a (MPa)', color:'#e6edf3', font:{size:14}},
+          min:0,
+          ticks:{color:'#8b949e'},
+          grid:{color:'#2a3441'}
+        }
+      },
+      plugins:{
+        legend:{labels:{color:'#e6edf3', font:{size:12}}, position:'top'}
+      }
+    }
+  });
+}
+
+  // Gráfica de daño
+  const ctxD = document.getElementById('chartDamage');
+  if(ctxD){
+    chartDamage = new Chart(ctxD, {
+      type:'doughnut',
+      data:{
+        labels:['Axial σ_x','Flexión σ_y','Torsión τ_xy'],
+        datasets:[{
+          data:[33,33,34],
+          backgroundColor:['#00c2ff','#ff8a00','#23d160'],
+          borderColor:'#1a2029',
+          borderWidth:2
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#e6edf3'}, position:'bottom'}}
+      }
+    });
+  }
+}
+
+// ============================================
+// FUNCIÓN DE VON MISES
+// ============================================
+function vonMises(sx, sy, tau){
+  const val = sx*sx - sx*sy + sy*sy + 3*tau*tau;
+  return Math.sqrt(Math.max(0, val));
+}
+
+// ============================================
+// CÁLCULO PRINCIPAL
+// ============================================
+function calcular(){
+  // Leer valores de sliders
+  const r = parseFloat(document.getElementById('r').value);
+  const l = parseFloat(document.getElementById('l').value);
+  const rpm = parseFloat(document.getElementById('rpm').value);
+  const mb = parseFloat(document.getElementById('mb').value);
+  const Fc = parseFloat(document.getElementById('Fc').value);
+  const d = parseFloat(document.getElementById('d').value);
+  const mat = materials[document.getElementById('material').value];
+  const Ka = parseFloat(document.getElementById('acabado').value);
+  const Kt = parseFloat(document.getElementById('Kt').value);
+
+  // Actualizar displays de sliders
+  document.getElementById('r-val').textContent = r + ' mm';
+  document.getElementById('l-val').textContent = l + ' mm';
+  document.getElementById('rpm-val').textContent = rpm + ' RPM';
+  document.getElementById('mb-val').textContent = mb.toFixed(1) + ' kg';
+  document.getElementById('Fc-val').textContent = Fc + ' N';
+  document.getElementById('d-val').textContent = d + ' mm';
+  document.getElementById('Kt-val').textContent = Kt.toFixed(2);
+
+  // Cinemática
+  const omega = rpm * 2 * Math.PI / 60;
+  const lambda = r / l;
+  const amax = (r/1000) * omega * omega * (1 + lambda);
+  const Fin_max = mb * amax;
+
+  // ============================================
+  // MODELO DE ESFUERZOS CON COMPONENTE MEDIA
+  // ============================================
+  const A = Math.PI * d * d / 4;
+  
+  // Fuerza de inercia → ALTERNANTE
+  const sx_a_inercia = Fin_max / A;
+  const sx_m_inercia = 0;
+  
+  // Fuerza de corte → MEDIA (siempre misma dirección)
+  const sx_a_corte = 0;
+  const sx_m_corte = Fc / A;
+  
+  // Totales
+  const sx_a = sx_a_inercia + sx_a_corte;
+  const sx_m = sx_m_inercia + sx_m_corte;
+  
+  // Flexión
+  const Mf_a = 0.05 * Fin_max * l;
+  const Mf_m = 0.05 * Fc * l;
+  const sy_a = 32 * Mf_a / (Math.PI * d * d * d);
+  const sy_m = 32 * Mf_m / (Math.PI * d * d * d);
+  
+  // Torsión
+  const T_a = 0.03 * Fin_max * r;
+  const T_m = 0.03 * Fc * r;
+  const tau_a = 16 * T_a / (Math.PI * d * d * d);
+  const tau_m = 16 * T_m / (Math.PI * d * d * d);
+
+  // von Mises
+  const svm_a = vonMises(sx_a, sy_a, tau_a);
+  const svm_m = vonMises(sx_m, sy_m, tau_m);
+  const svm_a_Kt = svm_a * Kt;
+
+  // Fatiga
+  const Se0 = 0.5 * mat.Su;
+  const Kb = 0.87;
+  const Kc = 1.0;
+  const Se = Ka * Kb * Kc * Se0;
+
+  // Goodman
+  const Seq = svm_a_Kt / Math.max(0.01, 1 - svm_m/mat.Su);
+  const nG = Se / Seq;
+
+  // Vida N
+  const Sf = 0.9 * mat.Su;
+  let N;
+  if(svm_a_Kt >= Sf){ 
+    N = 1e3; 
+  } else if(svm_a_Kt <= Se){ 
+    N = 1e8; 
+  } else {
+    const b = Math.log(Se / Sf) / Math.log(1e6 / 1e3);
+    N = 1e3 * Math.pow(svm_a_Kt / Sf, 1/b);
+  }
+
+  // Mostrar resultados
+  document.getElementById('res-omega').textContent = omega.toFixed(2);
+  document.getElementById('res-lambda').textContent = lambda.toFixed(3);
+  document.getElementById('res-carrera').textContent = (2*r).toFixed(0);
+  document.getElementById('res-amax').textContent = amax.toFixed(1);
+  document.getElementById('res-Fin').textContent = Fin_max.toFixed(0);
+
+  document.getElementById('res-A').textContent = A.toFixed(1);
+  document.getElementById('res-sxm').textContent = sx_m.toFixed(1);
+  document.getElementById('res-sxa').textContent = sx_a.toFixed(1);
+  document.getElementById('res-sym').textContent = sy_m.toFixed(1);
+  document.getElementById('res-taua').textContent = tau_a.toFixed(1);
+  document.getElementById('res-svm').textContent = svm_m.toFixed(1);
+  document.getElementById('res-sva').textContent = svm_a.toFixed(1);
+  document.getElementById('res-svaK').textContent = svm_a_Kt.toFixed(1);
+
+  document.getElementById('res-Se0').textContent = Se0.toFixed(0);
+  document.getElementById('res-Se').textContent = Se.toFixed(0);
+  document.getElementById('res-N').textContent = N.toExponential(2);
+
+  document.getElementById('res-Seq').textContent = Seq.toFixed(1);
+  document.getElementById('res-nG').textContent = nG.toFixed(2);
+  const status = document.getElementById('res-status');
+  if(nG >= 1.5){ status.innerHTML = '<span class="status-ok">✓ SEGURO</span>'; }
+  else if(nG >= 1.0){ status.innerHTML = '<span style="color:#ff8a00;font-weight:bold">⚠ MARGINAL</span>'; }
+  else { status.innerHTML = '<span class="status-warn">✗ FALLA</span>'; }
+
+  // ============================================
+  // ACTUALIZAR GRÁFICA S-N
+  // ============================================
+  if(chartSN){
+    try{
+      const ptsSN = [];
+      
+      // Región de bajo ciclo (10^2 a 10^3)
+      for(let i=2; i<=3; i+=0.1){
+        const Ni = Math.pow(10, i);
+        ptsSN.push({x: Ni, y: Sf});
+      }
+      
+      // Región de alto ciclo (10^3 a 10^6)
+      const b = Math.log(Se / Sf) / Math.log(1e6 / 1e3);
+      for(let i=3; i<=6; i+=0.1){
+        const Ni = Math.pow(10, i);
+        const sigma = Sf * Math.pow(Ni / 1e3, b);
+        ptsSN.push({x: Ni, y: sigma});
+      }
+      
+      // Región de vida infinita (>10^6)
+      for(let i=6; i<=8; i+=0.1){
+        const Ni = Math.pow(10, i);
+        ptsSN.push({x: Ni, y: Se});
+      }
+      
+      chartSN.data.datasets[0].data = ptsSN;
+      chartSN.data.datasets[1].data = [{x: Math.max(1e3, Math.min(N, 1e8)), y: svm_a_Kt}];
+      chartSN.options.scales.y.max = Math.max(Sf * 1.2, svm_a_Kt * 1.3, 100);
+      chartSN.update();
+    } catch(e){
+      console.error('Error gráfica S-N:', e);
+    }
+  }
+
+// ============================================
+// ACTUALIZAR GRÁFICA GOODMAN CON ZONAS COLOREADAS
+// ============================================
+if(chartGoodman){
+  try{
+    const xMax = Math.max(mat.Su * 1.1, svm_m * 2, 100);
+    const yMax = Math.max(Se * 1.5, svm_a_Kt * 1.3, 100);
+    
+    // Dataset 0: Zona segura (triángulo verde)
+    // Vértices: (0,0), (0, Se), (Su, 0)
+    chartGoodman.data.datasets[0].data = [
+      {x: 0, y: 0},
+      {x: 0, y: Se},
+      {x: mat.Su, y: 0},
+      {x: 0, y: 0}  // cerrar polígono
+    ];
+    
+    // Dataset 1: Zona de falla (polígono rojo encima de la línea)
+    // Vértices: (0, Se), (0, yMax), (xMax, yMax), (Su, 0)
+    chartGoodman.data.datasets[1].data = [
+      {x: 0, y: Se},
+      {x: 0, y: yMax},
+      {x: xMax, y: yMax},
+      {x: xMax, y: 0},
+      {x: mat.Su, y: 0},
+      {x: 0, y: Se}  // cerrar polígono
+    ];
+    
+    // Dataset 2: Línea de Goodman (diagonal)
+    chartGoodman.data.datasets[2].data = [
+      {x: 0, y: Se},
+      {x: mat.Su, y: 0}
+    ];
+    
+    // Dataset 3: Punto operativo
+    chartGoodman.data.datasets[3].data = [
+      {x: svm_m, y: svm_a_Kt}
+    ];
+    
+    chartGoodman.options.scales.x.max = xMax;
+    chartGoodman.options.scales.y.max = yMax;
+    chartGoodman.options.scales.x.min = 0;
+    chartGoodman.options.scales.y.min = 0;
+    
+    chartGoodman.update();
+  } catch(e){
+    console.error('Error gráfica Goodman:', e);
+  }
+}
+  // ============================================
+  // ACTUALIZAR GRÁFICA DE DAÑO
+  // ============================================
+  if(chartDamage){
+    try{
+      const cAx = sx_a * sx_a + sx_m * sx_m;
+      const cFl = Math.max(0, sy_a * sy_a + sy_m * sy_m - sx_a * sy_a - sx_m * sy_m);
+      const cTo = 3 * (tau_a * tau_a + tau_m * tau_m);
+      const total = cAx + cFl + cTo;
+      if(total > 0){
+        chartDamage.data.datasets[0].data = [
+          (cAx/total*100).toFixed(1),
+          (cFl/total*100).toFixed(1),
+          (cTo/total*100).toFixed(1)
+        ];
+        chartDamage.update();
+      }
+    } catch(e){
+      console.error('Error gráfica daño:', e);
+    }
+  }
+
+  // Actualizar 3D
+  if(window.updateMech3DParams){
+    window.updateMech3DParams(r, l, d, omega);
+  }
+}
+
+// ============================================
+// LISTENERS DE SLIDERS
+// ============================================
+function setupSliders(){
+  const sliderIds = ['r','l','rpm','mb','Fc','d','Kt'];
+  sliderIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){
+      el.addEventListener('input', calcular);
+    }
+  });
+  
+  const selectIds = ['material','acabado'];
+  selectIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){
+      el.addEventListener('change', calcular);
+    }
+  });
+}
+
+// ============================================
+// VISUALIZADOR 3D
+// ============================================
+function init3D(){
+  const container = document.getElementById('viewer3d');
+  
+  if(typeof THREE === 'undefined' || typeof THREE.OrbitControls === 'undefined'){
+    container.innerHTML = '<div class="error-msg">⚠ Three.js no se cargó.</div>';
+    return;
+  }
+  
+  try{
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a1628);
+    
+    const width = container.clientWidth;
+    const height = 420;
+    
+    const camera = new THREE.PerspectiveCamera(50, width/height, 0.1, 10000);
+    camera.position.set(0, 150, 400);
+    
+    const renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    container.appendChild(renderer.domElement);
+    
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(100, 0, 0);
+    
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    const dl1 = new THREE.DirectionalLight(0xffffff, 1.0);
+    dl1.position.set(200, 300, 200);
+    scene.add(dl1);
+    const dl2 = new THREE.DirectionalLight(0x4488ff, 0.5);
+    dl2.position.set(-200, 100, -200);
+    scene.add(dl2);
+    
+    const matAcero = new THREE.MeshStandardMaterial({color:0x8899aa, metalness:0.7, roughness:0.4});
+    const matCritico = new THREE.MeshStandardMaterial({color:0xff3860, metalness:0.5, roughness:0.3, emissive:0xff3860, emissiveIntensity:0.5});
+    const matCuchilla = new THREE.MeshStandardMaterial({color:0x00c2ff, metalness:0.6, roughness:0.3});
+    const matBase = new THREE.MeshStandardMaterial({color:0x334455, metalness:0.4, roughness:0.6});
+    
+    const mech = new THREE.Group();
+    scene.add(mech);
+    
+    let manivela, munonMan, biela, munonBie, barra;
+    
+    const base = new THREE.Mesh(new THREE.BoxGeometry(500, 10, 70), matBase);
+    base.position.y = -30;
+    scene.add(base);
+    
+    const axes = new THREE.AxesHelper(80);
+    scene.add(axes);
+    
+    let theta = 0;
+    let currentR = 45, currentL = 220, currentD = 28, currentOmega = 83.77;
+    
+    function updateGeometry(r, l, d){
+      while(mech.children.length > 0){
+        const child = mech.children[0];
+        mech.remove(child);
+        if(child.geometry) child.geometry.dispose();
+      }
+      
+      manivela = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 15, 32), matAcero);
+      manivela.rotation.x = Math.PI/2;
+      mech.add(manivela);
+      
+      munonMan = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 20, 16), matCritico);
+      munonMan.rotation.x = Math.PI/2;
+      mech.add(munonMan);
+      
+      const bielaLength = l;
+      const bielaWidth = d * 0.8;
+      const bielaHeight = d * 0.6;
+      biela = new THREE.Mesh(new THREE.BoxGeometry(bielaLength, bielaWidth, bielaHeight), matAcero);
+      mech.add(biela);
+      
+      munonBie = new THREE.Mesh(new THREE.SphereGeometry(d * 0.5, 16, 16), matCritico);
+      mech.add(munonBie);
+      
+      barra = new THREE.Mesh(new THREE.BoxGeometry(280, 18, 35), matCuchilla);
+      mech.add(barra);
+      
+      for(let i=-6;i<=6;i++){
+        const diente = new THREE.Mesh(new THREE.ConeGeometry(5, 14, 4), matCuchilla);
+        diente.position.set(i*20, -14, 0);
+        diente.rotation.z = Math.PI;
+        barra.add(diente);
+      }
+    }
+    
+    function updateMech(){
+      const xM = currentR * Math.cos(theta);
+      const yM = currentR * Math.sin(theta);
+      
+      manivela.position.set(0, 0, 0);
+      munonMan.position.set(xM, yM, 0);
+      
+      const xB = currentR * Math.cos(theta) + Math.sqrt(currentL*currentL - currentR*currentR*Math.sin(theta)*Math.sin(theta));
+      barra.position.set(xB, 0, 0);
+      
+      const midX = (xM + xB) / 2;
+      const midY = yM / 2;
+      biela.position.set(midX, midY, 0);
+      biela.rotation.z = Math.atan2(-yM, xB - xM);
+      
+      munonBie.position.set(xM, yM, 0);
+    }
+    
+    window.updateMech3DParams = function(r, l, d, omega){
+      currentR = r;
+      currentL = l;
+      currentD = d;
+      currentOmega = omega;
+      updateGeometry(r, l, d);
+    };
+    
+    updateGeometry(currentR, currentL, currentD);
+    
+    function animate(){
+      requestAnimationFrame(animate);
+      theta += currentOmega * 0.0003;
+      updateMech();
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+    
+    window.addEventListener('resize', ()=>{
+      const w = container.clientWidth;
+      camera.aspect = w / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, height);
+    });
+    
+  } catch(e){
+    console.error('Error en 3D:', e);
+    container.innerHTML = '<div class="error-msg"> Error 3D: ' + e.message + '</div>';
+  }
+}
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+window.addEventListener('DOMContentLoaded', function(){
+  setupSliders();
+  initCharts();
+  init3D();
+  calcular();
+});
+</script>
+</body>
+</html>
