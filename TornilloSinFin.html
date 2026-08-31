@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Análisis de Desgaste Abrasivo Severo — Sinfín Transportador (Ecuación de Archard)</title>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'\\(',right:'\\)',display:false}]});"></script>
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0b1020; --panel:#111a33; --panel2:#0f1730;
+    --accent:#f59e0b; --danger:#ef4444; --ok:#10b981;
+    --text:#e5e7eb; --muted:#94a3b8; --border:#1e293b;
+  }
+  body{background:linear-gradient(180deg,#070b1a 0%,#0b1020 100%);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;}
+  .card{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--border);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .badge{background:#1e293b;color:#cbd5e1;padding:2px 10px;border-radius:999px;font-size:12px;border:1px solid #334155}
+  .critical{color:#fb923c}
+  .ok{color:#34d399}
+  .danger{color:#f87171}
+  .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:.5px}
+  .tag-leve{background:#064e3b;color:#6ee7b7}
+  .tag-moderado{background:#78350f;color:#fcd34d}
+  .tag-severo{background:#7f1d1d;color:#fecaca}
+  table{border-collapse:collapse;width:100%}
+  th,td{padding:8px 10px;border-bottom:1px solid #1e293b;text-align:left;font-size:14px}
+  th{background:#0f1730;color:#cbd5e1;font-weight:600}
+  .input-num{background:#0b1226;border:1px solid #1f2a44;color:#e5e7eb;padding:6px 8px;border-radius:8px;width:100%}
+  .input-sel{background:#0b1226;border:1px solid #1f2a44;color:#e5e7eb;padding:6px 8px;border-radius:8px;width:100%}
+  .step-title{display:flex;align-items:center;gap:10px;font-weight:700;color:#fcd34d;margin-bottom:8px}
+  .step-title .num{background:#f59e0b;color:#111;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px}
+  .formula{background:#0b1226;border:1px dashed #334155;border-radius:10px;padding:10px 12px;margin:8px 0;overflow-x:auto}
+  .result{background:linear-gradient(90deg,rgba(245,158,11,.12),rgba(245,158,11,0));border-left:3px solid #f59e0b;padding:8px 12px;border-radius:8px;margin-top:6px}
+  .viewer3d{width:100%;height:460px;border-radius:12px;overflow:hidden;border:1px solid #1e293b;background:#05070f;position:relative}
+  .legend-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#0b1226;border:1px solid #1f2a44;border-radius:999px;padding:4px 10px;font-size:12px;color:#cbd5e1}
+  .chart-box{background:#0b1226;border:1px solid #1e293b;border-radius:12px;padding:10px}
+  .hero-title{font-weight:800;letter-spacing:.3px}
+  .section-title{font-size:22px;font-weight:800;color:#fde68a;display:flex;align-items:center;gap:10px;margin:14px 0 8px}
+  .section-title::before{content:"";width:6px;height:22px;background:#f59e0b;border-radius:3px}
+  .note{background:#0b1226;border:1px solid #1f2a44;border-left:3px solid #38bdf8;border-radius:8px;padding:8px 12px;font-size:13px;color:#cbd5e1}
+
+  /* ===== SLIDERS ===== */
+  .slider-label{font-size:11px;color:#94a3b8;margin-bottom:2px;display:flex;justify-content:space-between;align-items:center}
+  .slider-label .val{color:#fbbf24;font-weight:700;font-family:'Courier New',monospace;background:#0b1226;padding:1px 6px;border-radius:4px;border:1px solid #1f2a44;min-width:60px;text-align:right;font-size:11px}
+  input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:linear-gradient(90deg,#1e293b,#334155);border-radius:4px;outline:none;cursor:pointer;margin:4px 0}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:radial-gradient(circle,#fbbf24 0%,#f59e0b 100%);border-radius:50%;cursor:pointer;box-shadow:0 0 0 2px #0b1226,0 0 8px rgba(245,158,11,.5);transition:transform .15s}
+  input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+  input[type="range"]::-moz-range-thumb{width:16px;height:16px;background:radial-gradient(circle,#fbbf24 0%,#f59e0b 100%);border-radius:50%;cursor:pointer;border:none;box-shadow:0 0 0 2px #0b1226,0 0 8px rgba(245,158,11,.5)}
+  .slider-group{background:#0b1226;border:1px solid #1f2a44;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+  .slider-group-title{font-size:12px;font-weight:700;color:#fcd34d;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .viewer-overlay{position:absolute;top:10px;left:10px;background:rgba(11,18,38,.85);border:1px solid #1f2a44;border-radius:8px;padding:6px 10px;font-size:11px;color:#cbd5e1;pointer-events:none;backdrop-filter:blur(4px)}
+  .viewer-overlay .live{color:#10b981;font-weight:700}
+  .viewer-hint{position:absolute;bottom:10px;right:10px;background:rgba(11,18,38,.85);border:1px solid #1f2a44;border-radius:8px;padding:4px 10px;font-size:10px;color:#94a3b8;pointer-events:none}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="max-w-7xl mx-auto px-4 pt-6">
+  <div class="card p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="hero-title text-2xl md:text-3xl text-amber-300">⚙ Análisis de Desgaste Abrasivo Severo — Sinfín Transportador</h1>
+        <p class="text-slate-300 text-sm mt-1">Ecuación de <b>Archard</b> aplicada a hélices helicoidales · Modelo de desgaste adhesivo/abrasivo</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <span class="badge">Curso: Análisis y Diseño de Máquinas</span>
+        <span class="badge">Módulo 06 · Desgaste</span>
+        <span class="badge">31·Ago·2026</span>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-2 mt-4">
+      <div class="chip">🎥 Visualizador 3D — THREE.JS · WEBGL</div>
+      <div class="chip">◉ Cámara: OrbitControls</div>
+      <div class="chip">⟲ Rotación automática del sinfín</div>
+      <div class="chip critical">⚠ Zona crítica en <b>naranja</b> (borde de ataque)</div>
+      <div class="chip">🟦 Eje &amp; hélice (acero)</div>
+      <div class="chip ok">🌊 Granos contenidos entre espiras (pockets)</div>
+      <div class="chip">📐 Modelo 3D se actualiza con los sliders</div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 grid lg:grid-cols-3 gap-6">
+
+  <!-- VISUALIZADOR 3D -->
+  <section class="lg:col-span-2 card p-4">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-lg font-bold text-amber-200">🎥 Visualizador 3D — Sinfín Transportador</h2>
+      <span class="badge">Arrastra para rotar · Rueda para zoom</span>
+    </div>
+    <div id="viewer3d" class="viewer3d">
+      <div class="viewer-overlay">
+        <div>ω: <span id="ov_omega" class="live">—</span> rad/s · v<sub>ax</sub>: <span id="ov_vax" class="live">—</span> m/s</div>
+        <div>Q: <span id="ov_Q" class="live">—</span> ton/h · ḣ: <span id="ov_hdot" class="live">—</span> mm/h</div>
+        <div>D: <span id="ov_D" class="live">—</span> mm · p: <span id="ov_p" class="live">—</span> mm · L: <span id="ov_L" class="live">—</span> m</div>
+      </div>
+      <div class="viewer-hint">Los granos viajan ATRAPADOS entre las espiras de la hélice</div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-xs">
+      <div class="chip"><span class="legend-dot" style="background:#f59e0b"></span>Zona crítica (borde ataque)</div>
+      <div class="chip"><span class="legend-dot" style="background:#9ca3af"></span>Hélice helicoidal</div>
+      <div class="chip"><span class="legend-dot" style="background:#60a5fa"></span>Eje central</div>
+      <div class="chip"><span class="legend-dot" style="background:#fbbf24"></span>Material en pockets</div>
+    </div>
+  </section>
+
+  <!-- CONFIGURACIÓN CON SLIDERS -->
+  <section class="card p-4">
+    <h2 class="text-lg font-bold text-amber-200 mb-2">🔧 Configuración en Tiempo Real</h2>
+
+    <div class="slider-group">
+      <div class="slider-group-title">📐 Geometría del Sinfín <span class="text-[10px] text-slate-500 ml-auto">(actualiza el 3D)</span></div>
+
+      <div class="slider-label"><span>Diámetro hélice D</span><span class="val"><span id="v_D">300</span> mm</span></div>
+      <input id="D" type="range" min="100" max="800" step="10" value="300">
+
+      <div class="slider-label"><span>Diámetro eje d</span><span class="val"><span id="v_d_shaft">60</span> mm</span></div>
+      <input id="d_shaft" type="range" min="30" max="200" step="5" value="60">
+
+      <div class="slider-label"><span>Paso p</span><span class="val"><span id="v_p">300</span> mm</span></div>
+      <input id="p" type="range" min="100" max="800" step="10" value="300">
+
+      <div class="slider-label"><span>Longitud L</span><span class="val"><span id="v_L">6.0</span> m</span></div>
+      <input id="L" type="range" min="2" max="30" step="0.5" value="6">
+
+      <div class="slider-label"><span>Espesor hélice t</span><span class="val"><span id="v_t">10</span> mm</span></div>
+      <input id="t" type="range" min="4" max="25" step="1" value="10">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-group-title">⚙ Cinemática y Operación</div>
+
+      <div class="slider-label"><span>Velocidad n</span><span class="val"><span id="v_n">45</span> RPM</span></div>
+      <input id="n" type="range" min="10" max="150" step="1" value="45">
+
+      <div class="slider-label"><span>Inclinación α</span><span class="val"><span id="v_alpha">15</span> °</span></div>
+      <input id="alpha" type="range" min="0" max="45" step="1" value="15">
+
+      <div class="slider-label"><span>Factor llenado φ</span><span class="val"><span id="v_phi">0.30</span></span></div>
+      <input id="phi" type="range" min="0.10" max="0.50" step="0.01" value="0.30">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-group-title">🔩 Material de la Hélice</div>
+      <select id="mat_helice" class="input-sel">
+        <option value="200">Acero AISI 1045 — H ≈ 200 HB</option>
+        <option value="350">Acero al Manganeso (Hadfield) — H ≈ 350 HB</option>
+        <option value="450" selected>Acero AR450 (Abrasion Resistant) — H ≈ 450 HB</option>
+        <option value="600">Hierro Blanco Cromado — H ≈ 600 HB</option>
+        <option value="1500">Recubrimiento Cerámico (Al₂O₃) — H ≈ 1500 HV</option>
+      </select>
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-group-title">🌾 Material Transportado</div>
+      <select id="mat_granel" class="input-sel">
+        <option value="800,0.3,1600,1.0">Trigo / Maíz — ρ=800, abrasividad baja</option>
+        <option value="1500,1.5,2600,1.6">Caliza molida — ρ=1500, abrasividad media</option>
+        <option value="2200,3.5,2650,2.6" selected>Arena sílica — ρ=2200, abrasividad alta</option>
+        <option value="3200,6.0,5000,5.3">Mineral de Hierro — ρ=3200, abrasividad muy alta</option>
+        <option value="1400,4.5,3100,1.5">Clinker Portland — ρ=1400, abrasividad alta</option>
+      </select>
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-group-title">⚠ Régimen de Desgaste (Archard)</div>
+      <select id="regimen" class="input-sel">
+        <option value="1e-6">Leve (oxidativo) — K ≈ 10⁻⁶</option>
+        <option value="1e-4" selected>Moderado — K ≈ 10⁻⁴</option>
+        <option value="1e-2">Severo (microcorte) — K ≈ 10⁻²</option>
+      </select>
+
+      <div class="slider-label mt-2"><span>Acabado superficial</span><span class="val"><span id="v_acabado">0.90</span></span></div>
+      <input id="acabado" type="range" min="0.50" max="1.00" step="0.05" value="0.90">
+      <div class="text-[10px] text-slate-500">1.00 pulido · 0.90 mecanizado · 0.80 rugoso · 0.65 forjado</div>
+    </div>
+  </section>
+
+  <!-- TABLA DE VARIABLES -->
+  <section class="card p-4 lg:col-span-3">
+    <h2 class="text-lg font-bold text-amber-200 mb-2">📋 Descripción de Variables</h2>
+    <div class="overflow-x-auto">
+    <table>
+      <thead><tr><th>Símbolo</th><th>Descripción</th><th>Típico</th><th>Unidad</th></tr></thead>
+      <tbody>
+        <tr><td>D</td><td>Diámetro exterior de la hélice</td><td>150–800</td><td>mm</td></tr>
+        <tr><td>d</td><td>Diámetro del eje central (tubo)</td><td>40–150</td><td>mm</td></tr>
+        <tr><td>p</td><td>Paso de la hélice (avance por vuelta)</td><td>0.8·D – 1.0·D</td><td>mm</td></tr>
+        <tr><td>L</td><td>Longitud total del transportador</td><td>2–30</td><td>m</td></tr>
+        <tr><td>n</td><td>Velocidad de rotación del sinfín</td><td>20–120</td><td>RPM</td></tr>
+        <tr><td>α</td><td>Ángulo de inclinación respecto a la horizontal</td><td>0–30</td><td>°</td></tr>
+        <tr><td>φ</td><td>Factor de llenado de la cuba (CEMA)</td><td>0.15–0.45</td><td>—</td></tr>
+        <tr><td>ρ</td><td>Densidad aparente del material a granel</td><td>500–3500</td><td>kg/m³</td></tr>
+        <tr><td>H</td><td>Dureza del material de la hélice</td><td>150–1500</td><td>HB / HV</td></tr>
+        <tr><td>Hₚ</td><td>Dureza de las partículas abrasivas</td><td>500–6000</td><td>HB</td></tr>
+        <tr><td>K</td><td>Coeficiente adimensional de desgaste (Archard)</td><td>10⁻⁶ – 10⁻²</td><td>—</td></tr>
+        <tr><td>F</td><td>Fuerza normal de contacto hélice–material</td><td>10²–10⁵</td><td>N</td></tr>
+        <tr><td>s</td><td>Distancia de deslizamiento acumulada</td><td>—</td><td>m</td></tr>
+        <tr><td>v<sub>desl</sub></td><td>Velocidad de deslizamiento relativa</td><td>0.5–3.0</td><td>m/s</td></tr>
+        <tr><td>V</td><td>Volumen de material removido por desgaste</td><td>—</td><td>mm³</td></tr>
+        <tr><td>h</td><td>Profundidad de desgaste (pérdida de espesor)</td><td>—</td><td>mm</td></tr>
+        <tr><td>Ẇ</td><td>Tasa de desgaste volumétrica</td><td>—</td><td>mm³/s</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 1: ECUACIÓN DE ARCHARD -->
+  <section class="card p-4 lg:col-span-3">
+    <h2 class="section-title">1 · Ecuación de Desgaste de Archard</h2>
+    <p class="text-slate-300 text-sm">El modelo de Archard relaciona el <b>volumen de material removido</b> \(V\) con la carga normal \(F\), la distancia de deslizamiento \(s\) y la dureza del material más blando \(H\). El coeficiente adimensional \(K\) caracteriza el <b>régimen de desgaste</b>.</p>
+
+    <div class="formula">
+      $$ V = K \cdot \frac{F \cdot s}{H} \qquad \text{[mm}^3\text{]} $$
+    </div>
+
+    <p class="text-slate-300 text-sm">Reescribiendo en términos de <b>profundidad de desgaste</b> \(h = V/A\) sobre un área de contacto \(A\):</p>
+    <div class="formula">
+      $$ h = K \cdot \frac{p_c \cdot s}{H} \qquad \text{con } p_c = \frac{F}{A} \text{ [MPa]} $$
+    </div>
+
+    <p class="text-slate-300 text-sm">Para un sinfín en operación continua, la distancia de deslizamiento acumulada en un tiempo \(t\) es:</p>
+    <div class="formula">
+      $$ s(t) = v_{desl} \cdot t $$
+    </div>
+
+    <div class="note">
+      <b>📘 Criterio de severidad:</b> el desgaste se considera <span class="tag tag-severo">severo</span> cuando \(H_p / H > 1.2\) (partículas más duras que la superficie) y \(K \ge 10^{-4}\). En este régimen domina el <b>microcorte</b> y la pérdida de espesor es lineal con el tiempo.
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2: CINEMÁTICA Y CAPACIDAD -->
+  <section class="card p-4 lg:col-span-3">
+    <h2 class="section-title">2 · Cinemática y Capacidad del Sinfín</h2>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div>
+        <div class="step-title"><span class="num">1</span>Velocidad angular</div>
+        <div class="formula">$$\omega = \frac{2\pi n}{60} \quad \text{[rad/s]}$$</div>
+        <div class="result">ω = <span id="r_omega">—</span> rad/s</div>
+
+        <div class="step-title mt-3"><span class="num">2</span>Velocidad axial de transporte</div>
+        <div class="formula">$$v_{ax} = p \cdot n_{rev} \quad \text{[m/s]}$$</div>
+        <div class="result">v<sub>ax</sub> = <span id="r_vax">—</span> m/s</div>
+
+        <div class="step-title mt-3"><span class="num">3</span>Velocidad tangencial en el borde (deslizamiento)</div>
+        <div class="formula">$$v_{desl} \approx \frac{\omega \cdot D}{2} \quad \text{[m/s]}$$</div>
+        <div class="result">v<sub>desl</sub> = <span id="r_vdesl">—</span> m/s</div>
+      </div>
+
+      <div>
+        <div class="step-title"><span class="num">4</span>Capacidad másica (CEMA)</div>
+        <div class="formula">$$Q = 60 \cdot \frac{\pi}{4}(D^2 - d^2)\cdot p \cdot n \cdot \rho \cdot \phi \cdot C_\alpha \cdot 10^{-9} \quad \text{[ton/h]}$$</div>
+        <p class="text-xs text-slate-400">con \(C_\alpha = 1 - 0.02\,\alpha\) (factor de inclinación, α en °)</p>
+        <div class="result">Q = <span id="r_Q">—</span> ton/h</div>
+
+        <div class="step-title mt-3"><span class="num">5</span>Masa de material sobre la hélice por unidad de longitud</div>
+        <div class="formula">$$w' = \rho \cdot \frac{\pi}{4}(D^2-d^2)\cdot \phi \quad \text{[kg/m]}$$</div>
+        <div class="result">w' = <span id="r_w">—</span> kg/m</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3: FUERZAS DE CONTACTO -->
+  <section class="card p-4 lg:col-span-3">
+    <h2 class="section-title">3 · Fuerzas de Contacto Hélice – Material</h2>
+    <p class="text-slate-300 text-sm">La fuerza normal que genera el desgaste proviene del <b>peso del material</b> apoyado sobre la hélice y de la <b>componente axial por fricción interna</b>. Se modela por unidad de longitud y se proyecta sobre el área de contacto del borde de ataque.</p>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div>
+        <div class="step-title"><span class="num">1</span>Peso del material por unidad de longitud</div>
+        <div class="formula">$$W' = w' \cdot g \quad \text{[N/m]}$$</div>
+        <div class="result">W' = <span id="r_W">—</span> N/m</div>
+
+        <div class="step-title mt-3"><span class="num">2</span>Fuerza normal total sobre la hélice</div>
+        <div class="formula">$$F_N = W' \cdot L \cdot \cos\alpha \cdot \mu_{int} \quad \text{[N]}$$</div>
+        <p class="text-xs text-slate-400">μ<sub>int</sub> ≈ 0.5 (fricción interna material–hélice típica)</p>
+        <div class="result">F<sub>N</sub> = <span id="r_FN">—</span> N</div>
+      </div>
+
+      <div>
+        <div class="step-title"><span class="num">3</span>Área de contacto del borde de ataque</div>
+        <div class="formula">$$A_c \approx \pi \cdot D \cdot \frac{L}{p} \cdot t \quad \text{[mm}^2\text{]}$$</div>
+        <p class="text-xs text-slate-400">Número de espiras activas = L/p</p>
+        <div class="result">A<sub>c</sub> = <span id="r_Ac">—</span> mm²</div>
+
+        <div class="step-title mt-3"><span class="num">4</span>Presión de contacto promedio</div>
+        <div class="formula">$$p_c = \frac{F_N}{A_c} \quad \text{[MPa]}$$</div>
+        <div class="result">p<sub>c</sub> = <span id="r_pc">—</span> MPa</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 4: CÁLCULO DE DESGASTE ARCHARD -->
+  <section class="card p-4 lg:col-span-3">
+    <h2 class="section-title">4 · Cálculo del Desgaste (Archard)</h2>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div>
+        <div class="step-title"><span class="num">1</span>Tasa volumétrica de desgaste</div>
+        <div class="formula">$$\dot{V} = K \cdot \frac{F_N \cdot v_{desl}}{H} \quad \text{[mm}^3\text{/s]}$$</div>
+        <div class="result">Ẇ = <span id="r_Vdot">—</span> mm³/s</div>
+
+        <div class="step-title mt-3"><span class="num">2</span>Tasa de pérdida de espesor</div>
+        <div class="formula">$$\dot{h} = \frac{\dot{V}}{A_c} = K \cdot \frac{p_c \cdot v_{desl}}{H} \quad \text{[mm/s]}$$</div>
+        <div class="result">ḣ = <span id="r_hdot">—</span> mm/s = <span id="r_hdot_h">—</span> mm/h</div>
+      </div>
+
+      <div>
+        <div class="step-title"><span class="num">3</span>Profundidad de desgaste a 1000 h</div>
+        <div class="formula">$$h(1000\text{h}) = \dot{h} \cdot 1000 \cdot 3600 \quad \text{[mm]}$$</div>
+        <div class="result">h(1000 h) = <span id="r_h1000">—</span> mm</div>
+
+        <div class="step-title mt-3"><span class="num">4</span>Vida útil estimada (espesor t disponible)</div>
+        <div class="formula">$$t_{vida} = \frac{t_{espesor}}{\dot{h}} \quad \text{[h]}$$</div>
+        <div class="result">t<sub>vida</sub> = <span id="r_tvida">—</span> h</div>
+
+        <div class="step-title mt-3"><span class="num">5</span>Relación de severidad</div>
+        <div class="formula">$$S_r = \frac{H_p}{H} \cdot K \cdot 10^4$$</div>
+        <div class="result">S<sub>r</sub> = <span id="r_Sr">—</span>
+          <span id="r_regimen" class="ml-2 tag">—</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRÁFICAS -->
+  <section class="card p-4 lg:col-span-3">
+    <h2 class="section-title">5 · Gráficas Interactivas</h2>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="chart-box">
+        <h3 class="text-sm font-bold text-amber-200 mb-1">📈 Profundidad de desgaste vs Tiempo</h3>
+        <canvas id="chartDepth" height="220"></canvas>
+        <p class="text-xs text-slate-400 mt-1">Pérdida de espesor en el borde de ataque de la hélice (lineal en régimen severo).</p>
+      </div>
+
+      <div class="chart-box">
+        <h3 class="text-sm font-bold text-amber-200 mb-1">📊 Tasa de desgaste vs Dureza de la hélice</h3>
+        <canvas id="chartHardness" height="220"></canvas>
+        <p class="text-xs text-slate-400 mt-1">ḣ [mm/h] para diferentes materiales transportados al variar H de la hélice.</p>
+      </div>
+
+      <div class="chart-box">
+        <h3 class="text-sm font-bold text-amber-200 mb-1">🧩 Contribución al desgaste (sensibilidad)</h3>
+        <canvas id="chartSens" height="220"></canvas>
+        <p class="text-xs text-slate-400 mt-1">Influencia relativa de cada parámetro sobre ḣ (Archard).</p>
+      </div>
+
+      <div class="chart-box">
+        <h3 class="text-sm font-bold text-amber-200 mb-1">🎯 Mapa de regímenes de desgaste</h3>
+        <canvas id="chartRegime" height="220"></canvas>
+        <p class="text-xs text-slate-400 mt-1">Clasificación según \(H_p/H\) y \(K\): leve, moderado y severo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 6: CONCLUSIONES -->
+  <section class="card p-4 lg:col-span-3">
+    <h2 class="section-title">6 · Conclusiones de Ingeniería</h2>
+    <ul class="space-y-2 text-slate-300 text-sm leading-relaxed">
+      <li>• La ecuación de <b>Archard</b> predice una <b>pérdida de espesor lineal con el tiempo</b> en régimen severo: \(h(t) = K\,p_c\,v_{desl}\,t / H\). Esto permite planificar mantenimientos predictivos midiendo el espesor residual de la hélice.</li>
+      <li>• La <b>relación de durezas \(H_p/H\)</b> gobierna el mecanismo: si \(H_p/H > 1.2\) las partículas penetran la superficie y domina el <b>microcorte</b> (K alto). Si \(H_p/H < 0.8\) el desgaste es leve y oxidativo.</li>
+      <li>• El <b>aumento de D y n</b> eleva cuadráticamente \(v_{desl}\) y linealmente la capacidad, pero <b>acelera el desgaste</b> en la misma proporción: no es gratis transportar más rápido.</li>
+      <li>• El <b>factor de llenado φ</b> y la <b>densidad ρ</b> del material aumentan \(p_c\) proporcionalmente: operar con cuba llena acelera el desgaste severo.</li>
+      <li>• El <b>acabado superficial</b> modifica la nucleación de microcortes: pasar de pulido a forjado puede multiplicar la tasa de desgaste por 1.5×.</li>
+      <li>• La <b>inclinación α</b> reduce la capacidad efectiva (factor \(C_\alpha\)) y redistribuye la carga sobre la hélice, concentrando el desgaste en el lado inferior de las espiras.</li>
+      <li class="result"><b>🛠 Recomendación:</b> para transporte de áridos duros (arena, mineral) usar hélice en <b>Acero AR450 o Hierro Blanco Cromado</b> (H ≥ 450 HB), con <b>recubrimiento soldado de carburos</b> en el borde de ataque, espesor inicial \(t \ge 12\) mm, y <b>inspección ultrasónica de espesor cada 500 h</b>. Objetivo: \(H_p/H < 1.5\) para mantener el desgaste en régimen moderado.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="max-w-7xl mx-auto px-4 py-6 text-center text-xs text-slate-500">
+  Análisis y Diseño de Máquinas — Sinfín Transportador · Desgaste Abrasivo Severo (Archard) · © 2026
+</footer>
+
+<script>
+/* ============================================================
+   VISUALIZADOR 3D — CORREGIDO: HÉLICE ESCALA CON D, PARTÍCULAS CONTENIDAS
+============================================================ */
+let scene, camera, renderer, controls;
+let worldGroup = null;
+let screwGroup = null;
+let troughGroup = null;
+let particleSystem = null;
+let particleData = [];
+const MAX_PARTICLES = 300;
+
+let geomState = {
+  D: 300, d: 60, p: 300, L: 6, t: 10, alpha: 15, phi: 0.30,
+  sceneLen: 3.0,
+  sceneR: 0.55,
+  sceneRi: 0.1,
+  sceneT: 0.03
+};
+
+let simState = { n: 45, v_ax: 0.225 };
+
+let helixAngle = 0;
+let lastTime = performance.now();
+
+function init3D(){
+  const cont = document.getElementById('viewer3d');
+  const W = cont.clientWidth, H = cont.clientHeight;
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05070f);
+  scene.fog = new THREE.Fog(0x05070f, 10, 28);
+
+  camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 100);
+  camera.position.set(3.5, 2.5, 5.0);
+
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(W,H);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  cont.appendChild(renderer.domElement);
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 1.0;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const dl = new THREE.DirectionalLight(0xffffff, 0.9);
+  dl.position.set(5,6,4); scene.add(dl);
+  const dl2 = new THREE.DirectionalLight(0xf59e0b, 0.35);
+  dl2.position.set(-5,-2,-3); scene.add(dl2);
+
+  const grid = new THREE.GridHelper(12, 24, 0x1e293b, 0x0f172a);
+  grid.position.y = -1.5;
+  scene.add(grid);
+
+  worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+
+  rebuildAll();
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function rebuildAll(){
+  while(worldGroup.children.length > 0){
+    const child = worldGroup.children[0];
+    worldGroup.remove(child);
+    child.traverse(obj=>{
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material){
+        if (Array.isArray(obj.material)) obj.material.forEach(m=>m.dispose());
+        else obj.material.dispose();
+      }
+    });
+  }
+
+  const D  = parseFloat(document.getElementById('D').value);
+  const d  = parseFloat(document.getElementById('d_shaft').value);
+  const p  = parseFloat(document.getElementById('p').value);
+  const L  = parseFloat(document.getElementById('L').value);
+  const t  = parseFloat(document.getElementById('t').value);
+  const alpha = parseFloat(document.getElementById('alpha').value);
+  const phi = parseFloat(document.getElementById('phi').value);
+
+  // CORRECCIÓN 1: El radio de la hélice (VIEWER_R) escala con D
+  // D=300mm → VIEWER_R=0.55 (referencia)
+  // D=600mm → VIEWER_R=1.10
+  // D=100mm → VIEWER_R=0.18
+  const VIEWER_R = 0.55 * (D / 300);
+  
+  // Longitud visible escala con L
+  const VIEWER_LEN = 1.8 + (L - 2) / (30 - 2) * 3.7;
+  
+  // Radio del eje escala con d, pero limitado para que no sea mayor que la hélice
+  const VIEWER_RI = Math.min(VIEWER_R * 0.9, Math.max(0.05, VIEWER_R * (d/D)));
+  
+  // Espesor visible escala con t
+  const VIEWER_T = Math.max(0.01, t * (VIEWER_R*2 / D) * 0.4);
+
+  geomState.D = D; geomState.d = d; geomState.p = p; geomState.L = L; geomState.t = t;
+  geomState.alpha = alpha; geomState.phi = phi;
+  geomState.sceneLen = VIEWER_LEN;
+  geomState.sceneR = VIEWER_R;
+  geomState.sceneRi = VIEWER_RI;
+  geomState.sceneT = VIEWER_T;
+
+  worldGroup.rotation.z = alpha * Math.PI / 180;
+
+  buildScrew();
+  buildTrough();
+  createParticleSystem();
+
+  helixAngle = 0;
+}
+
+function buildScrew(){
+  screwGroup = new THREE.Group();
+  worldGroup.add(screwGroup);
+
+  const VIEWER_LEN = geomState.sceneLen;
+  const VIEWER_R = geomState.sceneR;
+  const VIEWER_RI = geomState.sceneRi;
+  const VIEWER_T = geomState.sceneT;
+
+  const shaftGeo = new THREE.CylinderGeometry(VIEWER_RI, VIEWER_RI, VIEWER_LEN+0.3, 24);
+  const shaftMat = new THREE.MeshStandardMaterial({color:0x60a5fa, metalness:0.7, roughness:0.35});
+  const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+  shaft.rotation.z = Math.PI/2;
+  screwGroup.add(shaft);
+
+  const p_scene = geomState.p * (VIEWER_R*2 / geomState.D);
+  const turns = VIEWER_LEN / p_scene;
+  const segsPerTurn = 36;
+  const segs = Math.max(36, Math.floor(turns * segsPerTurn));
+
+  const helixMat = new THREE.MeshStandardMaterial({
+    color:0x9ca3af, metalness:0.6, roughness:0.4, side:THREE.DoubleSide
+  });
+  const criticalMat = new THREE.MeshStandardMaterial({
+    color:0xf59e0b, metalness:0.7, roughness:0.3,
+    emissive:0xf59e0b, emissiveIntensity:0.45
+  });
+
+  const R = VIEWER_R;
+  const Ri = VIEWER_RI;
+  const len = VIEWER_LEN;
+  const tHalf = VIEWER_T / 2;
+
+  for (let i=0; i<segs; i++){
+    const t0 = i/segs, t1 = (i+1)/segs;
+    const a0 = t0*turns*Math.PI*2, a1 = t1*turns*Math.PI*2;
+    const x0 = -len/2 + t0*len, x1 = -len/2 + t1*len;
+    const y0 = Math.cos(a0)*R, z0 = Math.sin(a0)*R;
+    const y1 = Math.cos(a1)*R, z1 = Math.sin(a1)*R;
+    const yi0 = Math.cos(a0)*Ri, zi0 = Math.sin(a0)*Ri;
+    const yi1 = Math.cos(a1)*Ri, zi1 = Math.sin(a1)*Ri;
+
+    const plateGeo1 = new THREE.BufferGeometry();
+    const verts1 = new Float32Array([
+      x0+tHalf, yi0, zi0,
+      x1+tHalf, yi1, zi1,
+      x1+tHalf, y1, z1,
+      x0+tHalf, y0, z0
+    ]);
+    plateGeo1.setIndex([0,1,2, 0,2,3]);
+    plateGeo1.setAttribute('position', new THREE.BufferAttribute(verts1,3));
+    plateGeo1.computeVertexNormals();
+    const plate1 = new THREE.Mesh(plateGeo1, helixMat);
+    screwGroup.add(plate1);
+
+    const plateGeo2 = new THREE.BufferGeometry();
+    const verts2 = new Float32Array([
+      x0-tHalf, y0, z0,
+      x1-tHalf, y1, z1,
+      x1-tHalf, yi1, zi1,
+      x0-tHalf, yi0, zi0
+    ]);
+    plateGeo2.setIndex([0,1,2, 0,2,3]);
+    plateGeo2.setAttribute('position', new THREE.BufferAttribute(verts2,3));
+    plateGeo2.computeVertexNormals();
+    const plate2 = new THREE.Mesh(plateGeo2, helixMat);
+    screwGroup.add(plate2);
+  }
+
+  const edgeGeo = new THREE.SphereGeometry(Math.max(0.015, VIEWER_R * 0.04), 8, 8);
+  for (let i=0; i<segs; i++){
+    const t0 = i/segs;
+    const a0 = t0*turns*Math.PI*2;
+    const x0 = -len/2 + t0*len;
+    const y0 = Math.cos(a0)*R;
+    const z0 = Math.sin(a0)*R;
+    const edge = new THREE.Mesh(edgeGeo, criticalMat);
+    edge.position.set(x0, y0, z0);
+    screwGroup.add(edge);
+  }
+}
+
+function buildTrough(){
+  troughGroup = new THREE.Group();
+  worldGroup.add(troughGroup);
+
+  const VIEWER_LEN = geomState.sceneLen;
+  const VIEWER_R = geomState.sceneR;
+  
+  // CORRECCIÓN 2: La cuba tiene margen suficiente para contener las partículas
+  const troughR = VIEWER_R + 0.20;
+
+  const troughGeo = new THREE.CylinderGeometry(troughR, troughR, VIEWER_LEN+0.3, 32, 1, true);
+  const troughMat = new THREE.MeshStandardMaterial({
+    color:0x334155, transparent:true, opacity:0.12, side:THREE.DoubleSide
+  });
+  const trough = new THREE.Mesh(troughGeo, troughMat);
+  trough.rotation.z = Math.PI/2;
+  troughGroup.add(trough);
+
+  const ringGeo = new THREE.TorusGeometry(troughR, 0.02, 8, 32);
+  const ringMat = new THREE.MeshStandardMaterial({color:0x475569, metalness:0.7});
+  [-VIEWER_LEN/2-0.15, VIEWER_LEN/2+0.15].forEach(x=>{
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.x = x;
+    ring.rotation.y = Math.PI/2;
+    troughGroup.add(ring);
+  });
+}
+
+function createParticleSystem(){
+  const baseGeo = new THREE.IcosahedronGeometry(1, 0);
+  const colors = [0xfbbf24, 0xf59e0b, 0xd97706, 0xfcd34d, 0xb45309, 0xeab308];
+  const mat = new THREE.MeshStandardMaterial({
+    color:0xffffff, roughness:0.85, metalness:0.1
+  });
+  particleSystem = new THREE.InstancedMesh(baseGeo, mat, MAX_PARTICLES);
+  particleSystem.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+  const colorAttr = new Float32Array(MAX_PARTICLES*3);
+  for (let i=0; i<MAX_PARTICLES; i++){
+    const c = new THREE.Color(colors[Math.floor(Math.random()*colors.length)]);
+    c.offsetHSL((Math.random()-0.5)*0.05, (Math.random()-0.5)*0.1, (Math.random()-0.5)*0.1);
+    colorAttr[i*3+0] = c.r;
+    colorAttr[i*3+1] = c.g;
+    colorAttr[i*3+2] = c.b;
+  }
+  particleSystem.instanceColor = new THREE.InstancedBufferAttribute(colorAttr, 3);
+
+  const p_scene = geomState.p * (geomState.sceneR*2 / geomState.D);
+  const nPockets = Math.max(2, Math.floor(geomState.sceneLen / p_scene));
+
+  const activeParticles = Math.floor(MAX_PARTICLES * (geomState.phi / 0.5));
+
+  particleData = [];
+  for (let i=0; i<MAX_PARTICLES; i++){
+    const pocketIdx = i % nPockets;
+    // CORRECCIÓN 3: Las partículas están DENTRO de la hélice (rRel < 1.0)
+    // rRel = 0.0 → en el eje
+    // rRel = 0.95 → cerca del borde exterior de la hélice (pero dentro)
+    const rRelBase = 0.2 + (geomState.phi / 0.5) * 0.7;
+    const rRel = Math.min(0.95, rRelBase + (Math.random()-0.5)*0.3);
+
+    particleData.push({
+      pocketIdx: pocketIdx,
+      phase: Math.random(),
+      angPhase: Math.random(),
+      rRel: rRel,
+      size: 0.022 + Math.random()*0.028,
+      slipFactor: 0.85 + Math.random()*0.3,
+      rotSpeed: (Math.random()-0.5)*2,
+      wobble: Math.random()*Math.PI*2,
+      active: i < activeParticles
+    });
+  }
+
+  worldGroup.add(particleSystem);
+}
+
+function updateParticles(dt){
+  if (!particleSystem || !screwGroup) return;
+
+  const VIEWER_LEN = geomState.sceneLen;
+  const VIEWER_R = geomState.sceneR;
+  const VIEWER_RI = geomState.sceneRi;
+  const halfLen = VIEWER_LEN/2;
+
+  const p_scene = geomState.p * (VIEWER_R*2 / geomState.D);
+
+  const v_ax_vis = simState.v_ax * (VIEWER_LEN / geomState.L);
+  const v_ax_clamped = Math.max(0.05, Math.min(1.5, v_ax_vis));
+
+  const omega_scene = v_ax_clamped * 2 * Math.PI / p_scene;
+
+  helixAngle += omega_scene * dt;
+
+  const dummy = new THREE.Object3D();
+  const tNow = performance.now()*0.001;
+
+  for (let i=0; i<MAX_PARTICLES; i++){
+    const pd = particleData[i];
+
+    if (!pd.active){
+      dummy.position.set(0, 0, 0);
+      dummy.scale.setScalar(0);
+      dummy.updateMatrix();
+      particleSystem.setMatrixAt(i, dummy.matrix);
+      continue;
+    }
+
+    const pocketBaseX = -halfLen + pd.pocketIdx * p_scene;
+    let pocketX = pocketBaseX + (helixAngle / (2*Math.PI)) * p_scene * pd.slipFactor;
+
+    const totalLen = VIEWER_LEN;
+    let relX = ((pocketX + halfLen) % totalLen + totalLen) % totalLen;
+    pocketX = -halfLen + relX;
+
+    const grainX = pocketX + pd.phase * p_scene;
+
+    const helixAngleAtX = ((grainX + halfLen) / p_scene) * 2 * Math.PI + helixAngle;
+    const grainAngle = helixAngleAtX + pd.angPhase * 2 * Math.PI;
+
+    // CORRECCIÓN 4: El radio de la partícula está entre Ri y R (dentro de la hélice)
+    const rBase = VIEWER_RI + pd.rRel * (VIEWER_R - VIEWER_RI);
+    const wobble = Math.sin(tNow*1.5 + pd.wobble) * 0.03;
+    const r = rBase + wobble;
+
+    const y = Math.cos(grainAngle) * r;
+    const z = Math.sin(grainAngle) * r;
+
+    dummy.position.set(grainX, y, z);
+    dummy.rotation.set(
+      pd.rotSpeed*tNow,
+      pd.rotSpeed*tNow*1.3,
+      pd.rotSpeed*tNow*0.7
+    );
+    dummy.scale.setScalar(pd.size);
+    dummy.updateMatrix();
+    particleSystem.setMatrixAt(i, dummy.matrix);
+  }
+  particleSystem.instanceMatrix.needsUpdate = true;
+}
+
+function onResize(){
+  const cont = document.getElementById('viewer3d');
+  const W = cont.clientWidth, H = cont.clientHeight;
+  camera.aspect = W/H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W,H);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - lastTime)/1000);
+  lastTime = now;
+
+  if (screwGroup){
+    const n = simState.n;
+    const omega_vis = (n/45)*0.015;
+    screwGroup.rotation.x += omega_vis;
+  }
+
+  updateParticles(dt);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+init3D();
+
+const sliderConfig = {
+  D:        { decimals: 0, rebuild: true },
+  d_shaft:  { decimals: 0, rebuild: true },
+  p:        { decimals: 0, rebuild: true },
+  L:        { decimals: 1, rebuild: true },
+  n:        { decimals: 0, rebuild: false },
+  alpha:    { decimals: 0, rebuild: true },
+  phi:      { decimals: 2, rebuild: true },
+  t:        { decimals: 0, rebuild: true },
+  acabado:  { decimals: 2, rebuild: false }
+};
+
+function updateSliderDisplay(id){
+  const el = document.getElementById(id);
+  const cfg = sliderConfig[id];
+  const val = parseFloat(el.value);
+  document.getElementById('v_'+id).textContent = val.toFixed(cfg.decimals);
+}
+
+Object.keys(sliderConfig).forEach(id=>{
+  const el = document.getElementById(id);
+  updateSliderDisplay(id);
+  el.addEventListener('input', ()=>{
+    updateSliderDisplay(id);
+    calc();
+    if (sliderConfig[id].rebuild){
+      rebuildAll();
+    }
+  });
+});
+
+let chartDepth, chartHardness, chartSens, chartRegime;
+
+function calc(){
+  const D  = parseFloat(document.getElementById('D').value);
+  const d  = parseFloat(document.getElementById('d_shaft').value);
+  const p  = parseFloat(document.getElementById('p').value);
+  const L  = parseFloat(document.getElementById('L').value);
+  const n  = parseFloat(document.getElementById('n').value);
+  const al = parseFloat(document.getElementById('alpha').value);
+  const phi= parseFloat(document.getElementById('phi').value);
+  const t  = parseFloat(document.getElementById('t').value);
+
+  const H  = parseFloat(document.getElementById('mat_helice').value);
+  const gr = document.getElementById('mat_granel').value.split(',').map(parseFloat);
+  const rho = gr[0];
+  const K   = parseFloat(document.getElementById('regimen').value);
+  const Hp  = gr[2];
+  const Ks  = parseFloat(document.getElementById('acabado').value);
+
+  simState.n = n;
+
+  const omega = 2*Math.PI*n/60;
+  const n_rev = n/60;
+  const p_m   = p/1000;
+  const v_ax  = p_m * n_rev;
+  const v_desl= omega * (D/2)/1000;
+
+  simState.v_ax = v_ax;
+
+  document.getElementById('r_omega').textContent  = omega.toFixed(2);
+  document.getElementById('r_vax').textContent    = v_ax.toFixed(3);
+  document.getElementById('r_vdesl').textContent  = v_desl.toFixed(3);
+
+  const Calpha = 1 - 0.02*al;
+  const Q = 60 * (Math.PI/4) * (D*D - d*d) * p * n * rho * phi * Calpha * 1e-9;
+  document.getElementById('r_Q').textContent = Q.toFixed(2);
+
+  const A_sec = (Math.PI/4)*(D*D - d*d)*1e-6;
+  const w_prime = rho * A_sec * phi;
+  document.getElementById('r_w').textContent = w_prime.toFixed(2);
+
+  const g = 9.81;
+  const Wp = w_prime * g;
+  const mu_int = 0.5;
+  const alrad = al*Math.PI/180;
+  const FN = Wp * L * Math.cos(alrad) * mu_int;
+  document.getElementById('r_W').textContent  = Wp.toFixed(1);
+  document.getElementById('r_FN').textContent = FN.toFixed(0);
+
+  const espiras = L/(p/1000);
+  const Ac = Math.PI * D * espiras * t;
+  document.getElementById('r_Ac').textContent = Ac.toFixed(0);
+
+  const pc = FN / Ac;
+  document.getElementById('r_pc').textContent = pc.toFixed(3);
+
+  const Vdot_real = K * FN * v_desl / H * 1000;
+  const hdot = Vdot_real / Ac;
+  const hdot_h = hdot * 3600;
+  const h1000 = hdot_h * 1000;
+  const t_vida = t / hdot_h;
+
+  document.getElementById('r_Vdot').textContent  = Vdot_real.toExponential(2);
+  document.getElementById('r_hdot').textContent  = hdot.toExponential(3);
+  document.getElementById('r_hdot_h').textContent= hdot_h.toFixed(4);
+  document.getElementById('r_h1000').textContent = h1000.toFixed(3);
+  document.getElementById('r_tvida').textContent = t_vida.toFixed(0);
+
+  const Sr = (Hp/H) * K * 1e4;
+  document.getElementById('r_Sr').textContent = Sr.toFixed(2);
+  const regTag = document.getElementById('r_regimen');
+  let regime, cls;
+  if (Hp/H < 0.8 || K < 1e-5){ regime='Leve (oxidativo)'; cls='tag-leve'; }
+  else if (Hp/H < 1.2 || K < 1e-3){ regime='Moderado'; cls='tag-moderado'; }
+  else { regime='Severo (microcorte)'; cls='tag-severo'; }
+  regTag.textContent = regime;
+  regTag.className = 'ml-2 tag ' + cls;
+
+  document.getElementById('ov_omega').textContent = omega.toFixed(2);
+  document.getElementById('ov_vax').textContent = v_ax.toFixed(3);
+  document.getElementById('ov_Q').textContent = Q.toFixed(2);
+  document.getElementById('ov_hdot').textContent = hdot_h.toFixed(4);
+  document.getElementById('ov_D').textContent = D;
+  document.getElementById('ov_p').textContent = p;
+  document.getElementById('ov_L').textContent = L.toFixed(1);
+
+  plotDepth(hdot_h, t);
+  plotHardness(rho, K, v_desl, pc);
+  plotSensibilidad(K, FN, v_desl, H, Ac);
+  plotRegime();
+}
+
+function plotDepth(hdot_h, t_esp){
+  const labels = [];
+  const data = [];
+  const life = [];
+  const totalH = 5000;
+  const step = 100;
+  for (let h=0; h<=totalH; h+=step){
+    labels.push(h);
+    data.push(+(hdot_h*h).toFixed(3));
+    life.push(t_esp);
+  }
+  const cfg = {
+    type:'line',
+    data:{labels, datasets:[
+      {label:'h(t) [mm]', data, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.15)', tension:.1, fill:true, pointRadius:0},
+      {label:'Espesor disponible t', data:life, borderColor:'#ef4444', borderDash:[6,4], pointRadius:0, fill:false}
+    ]},
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#cbd5e1'}}},
+      scales:{
+        x:{title:{display:true,text:'Tiempo [h]',color:'#94a3b8'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},
+        y:{title:{display:true,text:'Profundidad de desgaste [mm]',color:'#94a3b8'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}
+      }
+    }
+  };
+  if (chartDepth) chartDepth.destroy();
+  chartDepth = new Chart(document.getElementById('chartDepth'), cfg);
+}
+
+function plotHardness(rho, K, v_desl, pc){
+  const Hs = [200, 300, 400, 500, 600, 800, 1000, 1500];
+  const datasets = [
+    {label:'Arena sílica (Hp=2650)', color:'#fbbf24', Hp:2650, Krel:1.5},
+    {label:'Mineral Fe (Hp=5000)',   color:'#ef4444', Hp:5000, Krel:6.0},
+    {label:'Caliza (Hp=1500)',       color:'#60a5fa', Hp:1500, Krel:1.0},
+    {label:'Clinker (Hp=3100)',      color:'#a78bfa', Hp:3100, Krel:4.5}
+  ].map(s=>{
+    return {
+      label:s.label,
+      data: Hs.map(H => +(s.Krel*1e-4/1.5 * pc * v_desl / H * 3600).toFixed(4)),
+      borderColor:s.color,
+      backgroundColor:s.color+'33',
+      tension:.3,
+      pointRadius:2
+    };
+  });
+  const cfg = {
+    type:'line',
+    data:{labels:Hs.map(h=>h+' HB'), datasets},
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#cbd5e1'}}},
+      scales:{
+        x:{title:{display:true,text:'Dureza de la hélice H',color:'#94a3b8'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},
+        y:{title:{display:true,text:'ḣ [mm/h]',color:'#94a3b8'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}}
+      }
+    }
+  };
+  if (chartHardness) chartHardness.destroy();
+  chartHardness = new Chart(document.getElementById('chartHardness'), cfg);
+}
+
+function plotSensibilidad(K, FN, v_desl, H, Ac){
+  const base = K*FN*v_desl/(H*Ac);
+  const params = [
+    {name:'K (coef.)',    val:K*1.2,  base:K,    sign:+1},
+    {name:'F_N (carga)',  val:FN*1.2, base:FN,   sign:+1},
+    {name:'v_desl',       val:v_desl*1.2, base:v_desl, sign:+1},
+    {name:'H (dureza)',   val:H*1.2,  base:H,    sign:-1},
+    {name:'A_c (área)',   val:Ac*1.2, base:Ac,   sign:-1}
+  ];
+  const deltas = params.map(p=>{
+    const h_new = (p.name.startsWith('K')?p.val:K) *
+                  (p.name.startsWith('F')?p.val:FN) *
+                  (p.name.startsWith('v')?p.val:v_desl) /
+                  ((p.name.startsWith('H')?p.val:H) * (p.name.startsWith('A')?p.val:Ac));
+    return ((h_new/base - 1) * 100 * p.sign).toFixed(1);
+  });
+  const colors = ['#f59e0b','#ef4444','#10b981','#60a5fa','#a78bfa'];
+  const cfg = {
+    type:'bar',
+    data:{labels:params.map(p=>p.name), datasets:[{label:'Δḣ [%] ante +20% del parámetro', data:deltas, backgroundColor:colors}]},
+    options:{
+      responsive:true, indexAxis:'y',
+      plugins:{legend:{labels:{color:'#cbd5e1'}}},
+      scales:{
+        x:{title:{display:true,text:'Variación de ḣ [%]',color:'#94a3b8'},ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},
+        y:{ticks:{color:'#cbd5e1'},grid:{color:'#1e293b'}}
+      }
+    }
+  };
+  if (chartSens) chartSens.destroy();
+  chartSens = new Chart(document.getElementById('chartSens'), cfg);
+}
+
+function plotRegime(){
+  const puntos = [
+    {x:0.5, y:1e-6, label:'Trigo / Ac. 1045'},
+    {x:1.2, y:1e-5, label:'Caliza / Hadfield'},
+    {x:1.8, y:1e-4, label:'Arena / AR450', crit:true},
+    {x:3.5, y:5e-3, label:'Mineral Fe / 1045', crit:true}
+  ];
+  const cfg = {
+    type:'scatter',
+    data:{datasets:[{
+      label:'Puntos de operación',
+      data: puntos.map(p=>({x:p.x, y:p.y})),
+      backgroundColor: puntos.map(p=>p.crit?'#ef4444':'#10b981'),
+      pointRadius: puntos.map(p=>p.crit?8:6),
+      pointHoverRadius:10
+    }]},
+    options:{
+      responsive:true,
+      scales:{
+        x:{type:'linear', title:{display:true,text:'Relación de durezas Hp / H',color:'#94a3b8'},
+           min:0.1, max:6, ticks:{color:'#94a3b8'}, grid:{color:'#1e293b'}},
+        y:{type:'logarithmic', title:{display:true,text:'Coeficiente K',color:'#94a3b8'},
+           ticks:{color:'#94a3b8', callback:v=>v.toExponential(0)}, grid:{color:'#1e293b'}}
+      },
+      plugins:{
+        legend:{labels:{color:'#cbd5e1'}},
+        tooltip:{callbacks:{label:ctx=>{
+          const p = puntos[ctx.dataIndex];
+          return `${p.label}  (Hp/H=${p.x}, K=${p.y.toExponential(1)})`;
+        }}}
+      }
+    },
+    plugins:[{
+      id:'zonas',
+      beforeDraw(chart){
+        const {ctx, chartArea:{left,right,top,bottom}, scales:{x,y}} = chart;
+        const x1 = x.getPixelForValue(0.1), x2 = x.getPixelForValue(0.8);
+        const y1 = y.getPixelForValue(1e-7), y2 = y.getPixelForValue(1e-3);
+        ctx.fillStyle='rgba(16,185,129,0.08)';
+        ctx.fillRect(x1, y1, x2-x1, y2-y1);
+        const x3 = x.getPixelForValue(1.2);
+        const y3 = y.getPixelForValue(1e-5);
+        ctx.fillStyle='rgba(245,158,11,0.10)';
+        ctx.fillRect(x2, y3, x3-x2, y2-y3);
+        ctx.fillStyle='rgba(239,68,68,0.12)';
+        ctx.fillRect(x3, top, right-x3, y.getPixelForValue(1e-2)-top);
+      }
+    }]
+  };
+  if (chartRegime) chartRegime.destroy();
+  chartRegime = new Chart(document.getElementById('chartRegime'), cfg);
+}
+
+document.querySelectorAll('select').forEach(el=>{
+  el.addEventListener('change', calc);
+});
+
+calc();
+</script>
+
+</body>
+</html>
