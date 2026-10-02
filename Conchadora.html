@@ -4,115 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Conchadora Premier SS</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- KaTeX -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
-        body { background-color: #1a202c; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
-        .glass-panel { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
-        #canvas-container { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; }
-        input[type=range] { accent-color: #d97706; }
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); }
+        #canvas-container { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
+        input[type=range] { accent-color: #f59e0b; cursor: pointer; }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-8 min-h-screen">
 
-    <header class="mb-6 text-center">
-        <h1 class="text-3xl md:text-4xl font-bold text-amber-500">🍫 Control de Conchadora Premier SS</h1>
-        <p class="text-gray-400 mt-2">Sistema de telemetría y control en tiempo real para industria alimentaria</p>
+    <header class="mb-8 text-center">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-amber-500 tracking-tight">🍫 Conchadora Premier SS</h1>
+        <p class="text-slate-400 mt-2 text-sm md:text-base">Sistema de telemetría y control en tiempo real para industria alimentaria</p>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         
         <!-- Panel Izquierdo: Visualización 3D y Conexión -->
         <div class="lg:col-span-2 space-y-6">
-            <div class="glass-panel p-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-amber-400">Visualización 3D en Tiempo Real</h2>
-                    <div class="flex gap-2">
-                        <input type="text" id="esp32-ip" value="192.168.1.100" placeholder="IP del ESP32" class="bg-gray-700 text-white px-3 py-1 rounded text-sm w-40">
-                        <button onclick="connectWS()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1 rounded text-sm font-bold">Conectar</button>
+            <div class="glass-panel p-5">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-xl font-bold text-amber-400">Modelo 3D en Vivo</h2>
+                        <span id="connection-status" class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300 flex items-center">
+                            <span class="status-dot bg-red-500"></span> Desconectado
+                        </span>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <input type="text" id="esp32-ip" value="192.168.1.100" placeholder="IP del ESP32" class="bg-slate-800 border border-slate-600 text-white px-3 py-2 rounded-lg text-sm w-full sm:w-40 focus:outline-none focus:border-amber-500">
+                        <button onclick="connectWS()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">Conectar</button>
+                        <button id="btn-simulate" onclick="toggleSimulation()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">▶ Simular</button>
                     </div>
                 </div>
-                <div id="canvas-container" class="bg-gray-900 border border-gray-700"></div>
-                <div class="flex justify-around mt-4 text-sm">
-                    <div class="text-center"><span class="block text-gray-400">RPM Actuales</span><span id="disp-rpm" class="text-2xl font-bold text-amber-500">0</span></div>
-                    <div class="text-center"><span class="block text-gray-400">Temperatura</span><span id="disp-temp" class="text-2xl font-bold text-red-400">--</span></div>
-                    <div class="text-center"><span class="block text-gray-400">Humedad</span><span id="disp-hum" class="text-2xl font-bold text-blue-400">--</span></div>
+                
+                <div id="canvas-container"></div>
+                
+                <div class="grid grid-cols-3 gap-4 mt-5 text-center">
+                    <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                        <span class="block text-xs text-slate-400 uppercase tracking-wider">RPM Actuales</span>
+                        <span id="disp-rpm" class="text-3xl font-black text-amber-500">0</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                        <span class="block text-xs text-slate-400 uppercase tracking-wider">Temperatura</span>
+                        <span id="disp-temp" class="text-3xl font-black text-red-400">--</span>
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                        <span class="block text-xs text-slate-400 uppercase tracking-wider">Humedad</span>
+                        <span id="disp-hum" class="text-3xl font-black text-blue-400">--</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Gráficos en Tiempo Real -->
-            <div class="glass-panel p-4">
-                <h2 class="text-xl font-semibold text-amber-400 mb-4">Evolución del Proceso</h2>
-                <canvas id="telemetryChart" height="120"></canvas>
+            <div class="glass-panel p-5">
+                <h2 class="text-xl font-bold text-amber-400 mb-4">Evolución del Proceso</h2>
+                <!-- Contenedor con altura fija para evitar colapso de Chart.js -->
+                <div style="height: 300px; position: relative; width: 100%;">
+                    <canvas id="telemetryChart"></canvas>
+                </div>
             </div>
         </div>
 
         <!-- Panel Derecho: Controles y Fórmulas -->
         <div class="space-y-6">
-            <!-- Controles -->
             <div class="glass-panel p-6">
-                <h2 class="text-xl font-semibold text-amber-400 mb-6">Parámetros de Conchado</h2>
+                <h2 class="text-xl font-bold text-amber-400 mb-6">Parámetros de Conchado</h2>
                 
                 <div class="mb-6">
-                    <label class="flex justify-between text-sm font-medium mb-2">
-                        <span>Temperatura Objetivo (°C)</span>
-                        <span id="val-temp" class="text-amber-400">60</span>
+                    <label class="flex justify-between text-sm font-medium mb-2 text-slate-300">
+                        <span>Temperatura Objetivo</span>
+                        <span id="val-temp" class="text-amber-400 font-bold">60 °C</span>
                     </label>
-                    <input type="range" id="slider-temp" min="30" max="85" value="60" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="updateParam('temperature', this.value)">
+                    <input type="range" id="slider-temp" min="30" max="85" value="60" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" oninput="updateParam('temperature', this.value)">
                 </div>
 
                 <div class="mb-6">
-                    <label class="flex justify-between text-sm font-medium mb-2">
-                        <span>Flujo de Ventilación (%)</span>
-                        <span id="val-vent" class="text-amber-400">50</span>
+                    <label class="flex justify-between text-sm font-medium mb-2 text-slate-300">
+                        <span>Flujo de Ventilación</span>
+                        <span id="val-vent" class="text-amber-400 font-bold">50 %</span>
                     </label>
-                    <input type="range" id="slider-vent" min="0" max="100" value="50" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="updateParam('ventilation', this.value)">
+                    <input type="range" id="slider-vent" min="0" max="100" value="50" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" oninput="updateParam('ventilation', this.value)">
                 </div>
 
                 <div class="mb-6">
-                    <label class="flex justify-between text-sm font-medium mb-2">
-                        <span>Tiempo de Conchado (min)</span>
-                        <span id="val-time" class="text-amber-400">120</span>
+                    <label class="flex justify-between text-sm font-medium mb-2 text-slate-300">
+                        <span>Tiempo de Conchado</span>
+                        <span id="val-time" class="text-amber-400 font-bold">120 min</span>
                     </label>
-                    <input type="range" id="slider-time" min="15" max="480" value="120" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="document.getElementById('val-time').innerText = this.value">
+                    <input type="range" id="slider-time" min="15" max="480" value="120" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" oninput="document.getElementById('val-time').innerText = this.value + ' min'">
                 </div>
 
-                <div class="mb-4">
-                    <label class="flex justify-between text-sm font-medium mb-2">
-                        <span>Velocidad Motor Web (%)</span>
-                        <span id="val-motor" class="text-amber-400">Auto (Joystick)</span>
+                <div class="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                    <label class="flex justify-between text-sm font-medium mb-2 text-slate-300">
+                        <span>Control de Motor</span>
+                        <span id="val-motor" class="text-amber-400 font-bold">Auto (Joystick)</span>
                     </label>
-                    <input type="range" id="slider-motor" min="-1" max="100" value="-1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="updateMotor(this.value)">
-                    <p class="text-xs text-gray-500 mt-1">-1 = Control por Joystick físico ESP32</p>
+                    <input type="range" id="slider-motor" min="-1" max="100" value="-1" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer" oninput="updateMotor(this.value)">
+                    <p class="text-xs text-slate-500 mt-2">💡 Valor -1 delega el control al joystick físico del ESP32.</p>
                 </div>
             </div>
 
-            <!-- Fórmulas de Ingeniería (KaTeX) -->
             <div class="glass-panel p-6">
-                <h2 class="text-xl font-semibold text-amber-400 mb-4">Fundamentos del Proceso</h2>
-                <div class="space-y-4 text-sm text-gray-300">
+                <h2 class="text-xl font-bold text-amber-400 mb-4">Fundamentos del Proceso</h2>
+                <div class="space-y-5 text-sm text-slate-300">
                     <div>
-                        <p class="font-semibold text-white mb-1">1. Tasa de Cizalla (Shear Rate)</p>
+                        <p class="font-semibold text-white mb-2">1. Tasa de Cizalla (Shear Rate)</p>
                         <div id="formula-shear"></div>
-                        <p class="text-xs text-gray-500 mt-1">Donde \(v\) es la velocidad tangencial del rodillo y \(h\) es la holgura de la placa.</p>
+                        <p class="text-xs text-slate-500 mt-1">Donde \(v\) es la velocidad tangencial del rodillo y \(h\) es la holgura de la placa.</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-white mb-1">2. Reducción de Humedad y Ácidos Volátiles</p>
+                        <p class="font-semibold text-white mb-2">2. Reducción de Humedad</p>
                         <div id="formula-moisture"></div>
-                        <p class="text-xs text-gray-500 mt-1">Modelo exponencial de evaporación durante el conchado en fase seca/húmeda.</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-white mb-1">3. Potencia Mecánica Aproximada</p>
-                        <div id="formula-power"></div>
-                        <p class="text-xs text-gray-500 mt-1">Dependiente de la viscosidad aparente (\(\mu\)) de la masa de chocolate.</p>
+                        <p class="text-xs text-slate-500 mt-1">Modelo exponencial de evaporación durante el conchado.</p>
                     </div>
                 </div>
             </div>
@@ -124,94 +134,96 @@
         // 1. CONFIGURACIÓN DE KATEX (FÓRMULAS)
         // ==========================================
         document.addEventListener("DOMContentLoaded", function() {
-            katex.render("\\dot{\\gamma} = \\frac{v}{h}", document.getElementById("formula-shear"), { displayMode: true });
-            katex.render("M(t) = M_0 \\cdot e^{-k \\cdot t}", document.getElementById("formula-moisture"), { displayMode: true });
-            katex.render("P \\approx \\mu \\cdot \\dot{\\gamma}^2 \\cdot V", document.getElementById("formula-power"), { displayMode: true });
+            katex.render("\\dot{\\gamma} = \\frac{v}{h}", document.getElementById("formula-shear"), { displayMode: true, throwOnError: false });
+            katex.render("M(t) = M_0 \\cdot e^{-k \\cdot t}", document.getElementById("formula-moisture"), { displayMode: true, throwOnError: false });
         });
 
         // ==========================================
-        // 2. THREE.JS - MODELO 3D DE LA CONCHADORA
+        // 2. THREE.JS - MODELO 3D SINCRONIZADO
         // ==========================================
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111827);
         
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-        camera.position.set(5, 5, 5);
+        camera.position.set(5, 4, 5);
         camera.lookAt(0, 0, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.shadowMap.enabled = true;
+        renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
         // Luces
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(5, 10, 7);
-        dirLight.castShadow = true;
+        dirLight.position.set(5, 8, 5);
         scene.add(dirLight);
+        const pointLight = new THREE.PointLight(0xf59e0b, 0.5, 10);
+        pointLight.position.set(-2, 3, -2);
+        scene.add(pointLight);
 
         // Materiales
-        const steelMaterial = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.8, roughness: 0.2 });
-        const chocolateMaterial = new THREE.MeshStandardMaterial({ color: 0x3e2723, metalness: 0.1, roughness: 0.6 });
-        const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x8d99ae, metalness: 0.1, roughness: 0.9 });
+        const steelMaterial = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
+        const chocolateMaterial = new THREE.MeshStandardMaterial({ color: 0x3e2723, metalness: 0.1, roughness: 0.4 });
+        const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.1, roughness: 0.9 });
 
-        // Base de la máquina
-        const baseGeo = new THREE.BoxGeometry(4, 0.5, 4);
-        const base = new THREE.Mesh(baseGeo, steelMaterial);
-        base.position.y = -1.5;
-        base.receiveShadow = true;
+        // Base
+        const base = new THREE.Mesh(new THREE.BoxGeometry(4, 0.4, 4), steelMaterial);
+        base.position.y = -1.6;
         scene.add(base);
 
-        // Tambor (Concha)
-        const drumGeo = new THREE.CylinderGeometry(2, 2, 2.5, 32, 1, true);
-        const drum = new THREE.Mesh(drumGeo, new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.6, roughness: 0.3, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
+        // Tambor
+        const drum = new THREE.Mesh(
+            new THREE.CylinderGeometry(2, 2, 2.2, 32, 1, true),
+            new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.7, roughness: 0.2, side: THREE.DoubleSide, transparent: true, opacity: 0.3 })
+        );
         drum.position.y = 0;
-        drum.castShadow = true;
         scene.add(drum);
 
-        // Masa de chocolate (simulada)
-        const chocoGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.8, 32);
-        const chocolate = new THREE.Mesh(chocoGeo, chocolateMaterial);
-        chocolate.position.y = -0.8;
+        // Chocolate
+        const chocolate = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.6, 32), chocolateMaterial);
+        chocolate.position.y = -0.9;
         scene.add(chocolate);
 
         // Rodillos (Wet Grinder)
         const rollerGroup = new THREE.Group();
         scene.add(rollerGroup);
 
-        const rollerGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.8, 16);
+        const rollerGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.6, 16);
         const roller1 = new THREE.Mesh(rollerGeo, stoneMaterial);
         roller1.rotation.z = Math.PI / 2;
-        roller1.position.x = 1.2;
-        roller1.position.y = -0.5;
+        roller1.position.x = 1.1;
+        roller1.position.y = -0.6;
         
         const roller2 = new THREE.Mesh(rollerGeo, stoneMaterial);
         roller2.rotation.z = Math.PI / 2;
-        roller2.position.x = -1.2;
-        roller2.position.y = -0.5;
+        roller2.position.x = -1.1;
+        roller2.position.y = -0.6;
 
         rollerGroup.add(roller1);
         rollerGroup.add(roller2);
 
-        // Animación 3D
+        // Variables de animación
         let targetRPM = 0;
-        let currentRotationSpeed = 0;
+        let currentRPM = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             
-            // Suavizado de la velocidad de rotación
-            currentRotationSpeed += (targetRPM - currentRotationSpeed) * 0.05;
+            // Interpolación lineal (Lerp) para suavizar la respuesta del joystick
+            currentRPM += (targetRPM - currentRPM) * 0.1;
             
-            // Rotación de los rodillos sobre su propio eje
-            roller1.rotation.x += currentRotationSpeed * 0.01;
-            roller2.rotation.x += currentRotationSpeed * 0.01;
+            // Factor de escala visual ajustado para una conchadora real (giro lento y potente)
+            // 30 RPM máx * 0.003 = 0.09 radianes/frame (~0.8 rev/seg a 60fps)
+            const visualSpeed = currentRPM * 0.003; 
             
-            // Rotación orbital de los rodillos alrededor del centro (simulando el movimiento del tambor o brazo)
-            rollerGroup.rotation.y += currentRotationSpeed * 0.002;
+            // Rotación de los rodillos sobre su propio eje (sentido opuesto para efecto de molienda)
+            roller1.rotation.x += visualSpeed;
+            roller2.rotation.x -= visualSpeed;
+            
+            // Rotación orbital lenta del conjunto simulando el brazo central
+            rollerGroup.rotation.y += visualSpeed * 0.15;
 
             renderer.render(scene, camera);
         }
@@ -227,42 +239,52 @@
         // 3. CHART.JS - GRÁFICOS EN TIEMPO REAL
         // ==========================================
         const ctx = document.getElementById('telemetryChart').getContext('2d');
-        const maxDataPoints = 50;
+        const maxDataPoints = 60; // 30 segundos a 500ms por dato
         
         const telemetryChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: Array(maxDataPoints).fill(''),
                 datasets: [
-                    { label: 'Temp (°C)', data: Array(maxDataPoints).fill(null), borderColor: '#f87171', borderWidth: 2, tension: 0.4, yAxisID: 'y' },
-                    { label: 'Humedad (%)', data: Array(maxDataPoints).fill(null), borderColor: '#60a5fa', borderWidth: 2, tension: 0.4, yAxisID: 'y1' },
-                    { label: 'RPM', data: Array(maxDataPoints).fill(null), borderColor: '#fbbf24', borderWidth: 2, tension: 0.4, yAxisID: 'y2' }
+                    { label: 'Temp (°C)', data: Array(maxDataPoints).fill(null), borderColor: '#f87171', backgroundColor: 'rgba(248, 113, 113, 0.1)', borderWidth: 2, fill: true, tension: 0.3, yAxisID: 'y' },
+                    { label: 'Humedad (%)', data: Array(maxDataPoints).fill(null), borderColor: '#60a5fa', borderWidth: 2, borderDash: [5, 5], tension: 0.3, yAxisID: 'y1' },
+                    { label: 'RPM', data: Array(maxDataPoints).fill(null), borderColor: '#fbbf24', borderWidth: 2, tension: 0.3, yAxisID: 'y2' }
                 ]
             },
             options: {
                 responsive: true,
-                animation: false,
+                maintainAspectRatio: false, // CRÍTICO: Permite que el canvas use la altura del contenedor padre
+                animation: false,           // CRÍTICO: Desactiva animaciones para renderizado en tiempo real sin lag
                 interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { labels: { color: '#cbd5e1' } }
+                },
                 scales: {
-                    y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'Temp (°C)'}, min: 20, max: 100 },
-                    y1: { type: 'linear', display: true, position: 'right', title: {display: true, text: 'Humedad (%)'}, min: 0, max: 100, grid: { drawOnChartArea: false } },
+                    x: { display: false },
+                    y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'Temp (°C)', color: '#f87171'}, min: 20, max: 90, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#cbd5e1' } },
+                    y1: { type: 'linear', display: true, position: 'right', title: {display: true, text: 'Humedad (%)', color: '#60a5fa'}, min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: '#cbd5e1' } },
                     y2: { type: 'linear', display: false, min: 0, max: 35 }
                 }
             }
         });
 
         function updateChart(temp, hum, rpm) {
-            const data = telemetryChart.data;
-            data.labels.push(new Date().toLocaleTimeString());
-            data.datasets[0].data.push(temp);
-            data.datasets[1].data.push(hum);
-            data.datasets[2].data.push(rpm);
+            if (!telemetryChart) return;
+            
+            const now = new Date().toLocaleTimeString('es-ES', { hour12: false, minute: '2-digit', second: '2-digit' });
+            
+            telemetryChart.data.labels.push(now);
+            telemetryChart.data.datasets[0].data.push(temp);
+            telemetryChart.data.datasets[1].data.push(hum);
+            telemetryChart.data.datasets[2].data.push(rpm);
 
-            if (data.labels.length > maxDataPoints) {
-                data.labels.shift();
-                data.datasets.forEach(dataset => dataset.data.shift());
+            if (telemetryChart.data.labels.length > maxDataPoints) {
+                telemetryChart.data.labels.shift();
+                telemetryChart.data.datasets.forEach(dataset => dataset.data.shift());
             }
-            telemetryChart.update();
+            
+            // 'none' es el modo de actualización más rápido para tiempo real
+            telemetryChart.update('none');
         }
 
         // ==========================================
@@ -270,87 +292,122 @@
         // ==========================================
         let ws;
         let isConnected = false;
+        let simulationInterval = null;
+        const statusIndicator = document.getElementById('connection-status');
 
         function connectWS() {
-            if (ws && isConnected) {
-                ws.close();
-            }
-            const ip = document.getElementById('esp32-ip').value;
+            if (simulationInterval) toggleSimulation(); // Detener simulación si se conecta de verdad
+            
+            if (ws) ws.close();
+            
+            const ip = document.getElementById('esp32-ip').value.trim();
+            if (!ip) { alert("Ingresa una dirección IP válida."); return; }
+            
             const url = `ws://${ip}:81`;
             console.log("Conectando a:", url);
+            statusIndicator.innerHTML = '<span class="status-dot bg-yellow-500 animate-pulse"></span> Conectando...';
+            statusIndicator.className = "text-xs bg-slate-700 px-2 py-1 rounded text-yellow-400 flex items-center";
             
             ws = new WebSocket(url);
             
             ws.onopen = () => {
                 isConnected = true;
-                console.log("WebSocket conectado");
-                // Enviar estado inicial de sliders
+                statusIndicator.innerHTML = '<span class="status-dot bg-green-500"></span> Conectado';
+                statusIndicator.className = "text-xs bg-slate-800 border border-green-500/30 px-2 py-1 rounded text-green-400 flex items-center";
+                
+                // Sincronizar estado inicial
                 updateParam('temperature', document.getElementById('slider-temp').value);
                 updateParam('ventilation', document.getElementById('slider-vent').value);
+                updateMotor(document.getElementById('slider-motor').value);
             };
             
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     
-                    // Actualizar UI
-                    document.getElementById('disp-rpm').innerText = data.motor_rpm;
-                    document.getElementById('disp-temp').innerText = data.temp_dht.toFixed(1) + " °C";
-                    document.getElementById('disp-hum').innerText = data.humedad_dht.toFixed(1) + " %";
+                    const temp = parseFloat(data.temp_dht) || 0;
+                    const hum = parseFloat(data.humedad_dht) || 0;
+                    const rpm = parseInt(data.motor_rpm) || 0;
+
+                    document.getElementById('disp-rpm').innerText = rpm;
+                    document.getElementById('disp-temp').innerText = temp.toFixed(1) + " °C";
+                    document.getElementById('disp-hum').innerText = hum.toFixed(1) + " %";
                     
-                    // Actualizar velocidad 3D
-                    targetRPM = data.motor_rpm;
+                    // Sincronización directa con el modelo 3D
+                    targetRPM = rpm;
                     
-                    // Actualizar gráfico
-                    updateChart(data.temp_dht, data.humedad_dht, data.motor_rpm);
+                    updateChart(temp, hum, rpm);
                     
                 } catch (e) {
-                    console.error("Error al parsear mensaje:", e);
+                    console.error("Error al parsear JSON:", e, "Data cruda:", event.data);
                 }
             };
             
             ws.onclose = () => {
                 isConnected = false;
-                console.log("WebSocket desconectado");
+                statusIndicator.innerHTML = '<span class="status-dot bg-red-500"></span> Desconectado';
+                statusIndicator.className = "text-xs bg-slate-700 px-2 py-1 rounded text-red-400 flex items-center";
             };
             
-            ws.onerror = (error) => {
-                console.error("Error de WebSocket:", error);
-                alert("No se pudo conectar al ESP32. Verifica la IP y que esté en la misma red WiFi.");
+            ws.onerror = () => {
+                statusIndicator.innerHTML = '<span class="status-dot bg-red-600"></span> Error';
             };
         }
 
         function updateParam(key, value) {
-            if (key === 'temperature') document.getElementById('val-temp').innerText = value;
-            if (key === 'ventilation') document.getElementById('val-vent').innerText = value;
+            if (key === 'temperature') document.getElementById('val-temp').innerText = value + " °C";
+            if (key === 'ventilation') document.getElementById('val-vent').innerText = value + " %";
             
             if (isConnected && ws.readyState === WebSocket.OPEN) {
-                const payload = {};
-                payload[key] = parseFloat(value);
-                ws.send(JSON.stringify(payload));
+                ws.send(JSON.stringify({ [key]: parseFloat(value) }));
             }
         }
 
         function updateMotor(value) {
             const val = parseInt(value);
-            if (val === -1) {
-                document.getElementById('val-motor').innerText = "Auto (Joystick)";
-            } else {
-                document.getElementById('val-motor').innerText = val + " %";
-            }
+            document.getElementById('val-motor').innerText = val === -1 ? "Auto (Joystick)" : val + " %";
             
             if (isConnected && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ motor_speed: val }));
             }
         }
 
-        // Reconexión automática en caso de pérdida
-        setInterval(() => {
-            if (!isConnected && ws && ws.readyState === WebSocket.CLOSED) {
-                console.log("Intentando reconectar...");
-                connectWS();
+        // ==========================================
+        // 5. MODO SIMULACIÓN (Para depuración UI)
+        // ==========================================
+        function toggleSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                document.getElementById('btn-simulate').innerText = "▶ Simular";
+                document.getElementById('btn-simulate').classList.replace('bg-red-600', 'bg-blue-600');
+                document.getElementById('btn-simulate').classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+                return;
             }
-        }, 5000);
+            
+            if (isConnected) connectWS(); // Desconectar WS si está activo
+            
+            document.getElementById('btn-simulate').innerText = "⏹ Detener";
+            document.getElementById('btn-simulate').classList.replace('bg-blue-600', 'bg-red-600');
+            document.getElementById('btn-simulate').classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+            statusIndicator.innerHTML = '<span class="status-dot bg-blue-500 animate-pulse"></span> Simulando';
+            
+            let simRPM = 0, simTemp = 25, simHum = 60;
+            
+            simulationInterval = setInterval(() => {
+                // Simular comportamiento realista de conchado
+                simRPM = Math.min(30, Math.max(0, simRPM + (Math.random() - 0.5) * 5));
+                simTemp = Math.min(65, simTemp + Math.random() * 0.3);
+                simHum = Math.max(25, simHum - Math.random() * 0.15);
+                
+                targetRPM = simRPM;
+                document.getElementById('disp-rpm').innerText = Math.floor(simRPM);
+                document.getElementById('disp-temp').innerText = simTemp.toFixed(1) + " °C";
+                document.getElementById('disp-hum').innerText = simHum.toFixed(1) + " %";
+                
+                updateChart(simTemp, simHum, simRPM);
+            }, 500);
+        }
     </script>
 </body>
 </html>
