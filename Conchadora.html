@@ -454,12 +454,15 @@ function animateThree() {
   requestAnimationFrame(animateThree);
   controls.update();
 
-  // Rotar rodillos sobre su eje longitudinal (eje Y)
-  const rpm = S.actSpeed;
-  const rotSpeed = (rpm / 60) * 0.15;
-  rollers.forEach((r, i) => {
-    r.rotation.y += rotSpeed * (i % 2 === 0 ? 1 : -1);
-  });
+// Rotar rodillos sobre su eje longitudinal (eje Y LOCAL del cilindro)
+const rpm = S.actSpeed;
+const rotSpeed = (rpm / 60) * 0.15;
+const axis = new THREE.Vector3(0, 1, 0);  // eje Y local = eje longitudinal del cilindro
+
+rollers.forEach((r, i) => {
+  const direction = (i % 2 === 0) ? 1 : -1;
+  r.rotateOnAxis(axis, rotSpeed * direction);
+});
 
   // ... el resto de la función sigue igual ...
   
