@@ -291,11 +291,29 @@ function initThree() {
 }
 
 function buildConche() {
-  const steel = new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.35, metalness: 0.85 });
-  const darkSteel = new THREE.MeshStandardMaterial({ color: 0x555566, roughness: 0.5, metalness: 0.7 });
-  const copper = new THREE.MeshStandardMaterial({ color: 0xcd7f32, roughness: 0.3, metalness: 0.9 });
-  const chocoMat = new THREE.MeshStandardMaterial({ color: 0x3E1C00, roughness: 0.25, metalness: 0.05 });
-  const redMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.6, metalness: 0.3 });
+  // Materiales mejorados
+  const steel = new THREE.MeshStandardMaterial({ 
+    color: 0x999999, roughness: 0.4, metalness: 0.7 
+  });
+  const darkSteel = new THREE.MeshStandardMaterial({ 
+    color: 0x444455, roughness: 0.6, metalness: 0.6 
+  });
+  const copper = new THREE.MeshStandardMaterial({ 
+    color: 0xcd7f32, roughness: 0.3, metalness: 0.8 
+  });
+  const chocoMat = new THREE.MeshStandardMaterial({ 
+    color: 0x3E1C00, roughness: 0.3, metalness: 0.1 
+  });
+  const redMat = new THREE.MeshStandardMaterial({ 
+    color: 0xcc3333, roughness: 0.6, metalness: 0.3 
+  });
+  
+  // ✅ Material de rodillos CORREGIDO: más visible, menos reflectivo
+  const rollerMat = new THREE.MeshStandardMaterial({ 
+    color: 0xcccccc,      // Gris claro (antes 0xaaaaaa)
+    roughness: 0.4,        // Más rugoso (antes 0.2)
+    metalness: 0.6         // Menos metálico (antes 0.95)
+  });
 
   const concheGroup = new THREE.Group();
 
@@ -323,7 +341,7 @@ function buildConche() {
     concheGroup.add(b);
   });
 
-  // === ARTESA (TROUGH) ===
+  // === ARTESA (TROUGH) - semicilindro horizontal ===
   const troughGeo = new THREE.CylinderGeometry(1.4, 1.4, 6, 48, 1, true, 0, Math.PI);
   troughOuter = new THREE.Mesh(troughGeo, steel);
   troughOuter.rotation.x = Math.PI / 2;
@@ -332,7 +350,7 @@ function buildConche() {
   troughOuter.castShadow = true;
   concheGroup.add(troughOuter);
 
-  // Tapas laterales
+  // Tapas laterales (semicírculos)
   const capShape = new THREE.Shape();
   capShape.absarc(0, 0, 1.4, 0, Math.PI, false);
   capShape.lineTo(-1.4, 0);
@@ -345,7 +363,7 @@ function buildConche() {
     concheGroup.add(cap);
   });
 
-  // Borde superior
+  // Borde superior (cobre)
   const rimGeo = new THREE.TorusGeometry(1.4, 0.06, 8, 48, Math.PI);
   [-3, 3].forEach(z => {
     const rim = new THREE.Mesh(rimGeo, copper);
@@ -355,7 +373,7 @@ function buildConche() {
     concheGroup.add(rim);
   });
 
-  // === CHOCOLATE ===
+  // === CHOCOLATE (dentro de la artesa) ===
   const chocoGeo = new THREE.CylinderGeometry(1.25, 1.25, 5.8, 48, 1, true, 0, Math.PI);
   chocolateMesh = new THREE.Mesh(chocoGeo, chocoMat);
   chocolateMesh.rotation.x = Math.PI / 2;
@@ -363,27 +381,29 @@ function buildConche() {
   chocolateMesh.position.set(0, 2.55, 0);
   concheGroup.add(chocolateMesh);
 
+  // Superficie plana del chocolate
   const chocoSurfGeo = new THREE.PlaneGeometry(2.5, 5.8);
   const chocoSurf = new THREE.Mesh(chocoSurfGeo, chocoMat);
   chocoSurf.rotation.x = -Math.PI / 2;
   chocoSurf.position.set(0, 2.55, 0);
   concheGroup.add(chocoSurf);
 
-  // === RODILLOS (3) ===
-  const rollerGeo = new THREE.CylinderGeometry(0.45, 0.45, 5.4, 32);
-  const rollerMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.2, metalness: 0.95 });
-  [-1.5, 0, 1.5].forEach((z, i) => {
+  // === RODILLOS (3) - AHORA DENTRO DE LA ARTESA ===
+  // ✅ Posición corregida: Y=2.2 (antes 1.95) para estar dentro del chocolate
+  const rollerGeo = new THREE.CylinderGeometry(0.35, 0.35, 5.4, 32);  // Radio más pequeño
+  [-1.2, 0, 1.2].forEach((z, i) => {  // ✅ Más juntos (antes -1.5, 0, 1.5)
     const roller = new THREE.Mesh(rollerGeo, rollerMat);
     roller.rotation.x = Math.PI / 2;
-    roller.position.set(0, 1.95, z);
+    roller.position.set(0, 2.2, z);  // ✅ Dentro de la artesa
     roller.castShadow = true;
     concheGroup.add(roller);
     rollers.push(roller);
 
-    const axleGeo = new THREE.CylinderGeometry(0.08, 0.08, 6.8, 12);
+    // Eje del rodillo (cobre)
+    const axleGeo = new THREE.CylinderGeometry(0.06, 0.06, 6.2, 12);
     const axle = new THREE.Mesh(axleGeo, copper);
     axle.rotation.x = Math.PI / 2;
-    axle.position.set(0, 1.95, z);
+    axle.position.set(0, 2.2, z);
     concheGroup.add(axle);
   });
 
@@ -407,7 +427,10 @@ function buildConche() {
 
   // === CAMPANA DE VENTILACIÓN ===
   const hoodGeo = new THREE.BoxGeometry(3.5, 0.8, 5);
-  const hoodMat = new THREE.MeshStandardMaterial({ color: 0x666677, roughness: 0.5, metalness: 0.6, transparent: true, opacity: 0.4 });
+  const hoodMat = new THREE.MeshStandardMaterial({ 
+    color: 0x666677, roughness: 0.5, metalness: 0.6, 
+    transparent: true, opacity: 0.4 
+  });
   const hood = new THREE.Mesh(hoodGeo, hoodMat);
   hood.position.set(0, 4.2, 0);
   concheGroup.add(hood);
@@ -431,7 +454,9 @@ function buildConche() {
   concheGroup.add(panelMesh);
 
   const screenGeo = new THREE.PlaneGeometry(0.6, 0.4);
-  const screenMat = new THREE.MeshStandardMaterial({ color: 0x003322, emissive: 0x004433, emissiveIntensity: 0.5 });
+  const screenMat = new THREE.MeshStandardMaterial({ 
+    color: 0x003322, emissive: 0x004433, emissiveIntensity: 0.5 
+  });
   const screen = new THREE.Mesh(screenGeo, screenMat);
   screen.position.set(3.28, 2.7, -2);
   screen.rotation.y = Math.PI / 2;
@@ -439,7 +464,6 @@ function buildConche() {
 
   scene.add(concheGroup);
 }
-
 function buildSteam() {
   const steamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
   for (let i = 0; i < 60; i++) {
