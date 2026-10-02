@@ -458,7 +458,7 @@ function animateThree() {
   const rpm = S.actSpeed;
   const rotSpeed = (rpm / 60) * 0.15;
   rollers.forEach((r, i) => {
-    r.rotation.x += rotSpeed * (i % 2 === 0 ? 1 : -1);
+    r.rotation.y += rotSpeed * (i % 2 === 0 ? 1 : -1);
   });
 
   // ... el resto de la función sigue igual ...
