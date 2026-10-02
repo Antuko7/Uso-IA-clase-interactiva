@@ -27,7 +27,6 @@
 body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
 h1,h2,h3 { color:var(--accent); }
 
-/* HEADER */
 .header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px;
   background:var(--panel); border-bottom:2px solid var(--accent); flex-wrap:wrap; gap:8px; }
 .header h1 { font-size:1.2rem; display:flex; align-items:center; gap:8px; }
@@ -46,19 +45,16 @@ h1,h2,h3 { color:var(--accent); }
 .status-dot.off { background:var(--err); box-shadow:0 0 6px var(--err); }
 .status-dot.sim { background:var(--warn); box-shadow:0 0 6px var(--warn); }
 
-/* GRID */
 .dashboard { display:grid; grid-template-columns:1fr 380px; grid-template-rows:auto auto auto;
   gap:12px; padding:12px; max-width:1600px; margin:0 auto; }
 .panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; }
 .panel h2 { font-size:1rem; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
 
-/* 3D VIEWPORT */
 .viewport { grid-row:1/3; min-height:480px; position:relative; }
 #three-canvas { width:100%; height:100%; border-radius:8px; display:block; }
 .viewport-overlay { position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,.65);
   padding:6px 12px; border-radius:6px; font-size:.75rem; color:var(--text-dim); pointer-events:none; }
 
-/* CONTROLS */
 .controls { display:flex; flex-direction:column; gap:10px; }
 .slider-group { display:flex; flex-direction:column; gap:4px; }
 .slider-group label { font-size:.85rem; display:flex; justify-content:space-between; }
@@ -83,13 +79,11 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 .param-card.vent .val { color:var(--ok); }
 .param-card.visc .val { color:var(--copper); }
 
-/* CHARTS */
 .charts-area { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
 .chart-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px; }
 .chart-box h3 { font-size:.85rem; margin-bottom:6px; }
 .chart-box canvas { width:100%!important; height:180px!important; }
 
-/* EQUATIONS */
 .equations { grid-column:1/-1; }
 .eq-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
 .eq-card { background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:12px; }
@@ -97,7 +91,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 .eq-card .katex-display { margin:6px 0; }
 .eq-card p { font-size:.78rem; color:var(--text-dim); margin-top:4px; }
 
-/* ESP32 CODE MODAL */
 .esp-toggle { background:var(--border); color:var(--text); border:none; padding:6px 14px;
   border-radius:6px; cursor:pointer; font-size:.8rem; margin-top:8px; }
 .esp-code { display:none; background:#0d1117; border:1px solid var(--border); border-radius:8px;
@@ -105,7 +98,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 .esp-code pre { font-size:.72rem; color:var(--ok); white-space:pre-wrap; word-break:break-all; }
 .esp-code.show { display:block; }
 
-/* RESPONSIVE */
 @media(max-width:900px){
   .dashboard { grid-template-columns:1fr; }
   .viewport { grid-row:auto; min-height:350px; }
@@ -114,9 +106,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 </head>
 <body>
 
-<!-- ==================== HEADER ==================== -->
 <div class="header">
-  <h1><span class="icon">🍫</span> Conchadora de Chocolate — Panel de Control</h1>
+  <h1><span class="icon"></span> Conchadora de Chocolate — Panel de Control</h1>
   <div class="conn-bar">
     <span class="status-dot off" id="statusDot"></span>
     <span id="statusText" style="font-size:.8rem">Desconectado</span>
@@ -126,26 +117,23 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
   </div>
 </div>
 
-<!-- ==================== DASHBOARD ==================== -->
 <div class="dashboard">
 
-  <!-- 3D VIEWPORT -->
   <div class="panel viewport">
-    <h2>🔩 Modelo 3D — Conchadora Longitudinal</h2>
+    <h2>🔩 Modelo 3D — Conchadora tipo Wet Grinder</h2>
     <canvas id="three-canvas"></canvas>
     <div class="viewport-overlay">🖱️ Arrastra para rotar · Scroll para zoom</div>
   </div>
 
-  <!-- CONTROLS -->
   <div class="panel controls">
     <h2>🎛️ Parámetros de Proceso</h2>
 
     <div class="slider-group">
-      <label>🌡️ Temperatura objetivo <b id="tempVal">60 °C</b></label>
+      <label>️ Temperatura objetivo <b id="tempVal">60 °C</b></label>
       <input type="range" id="sliderTemp" min="40" max="90" value="60" oninput="onSlider()">
     </div>
     <div class="slider-group">
-      <label>️ Tiempo de conchado <b id="timeVal">48 h</b></label>
+      <label>⏱️ Tiempo de conchado <b id="timeVal">48 h</b></label>
       <input type="range" id="sliderTime" min="1" max="96" value="48" oninput="onSlider()">
     </div>
     <div class="slider-group">
@@ -162,9 +150,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
     <div class="joystick-display">
       <div class="val" id="joystickRPM">0</div>
       <div class="lbl">RPM Motor (joystick Y / control manual)</div>
-      <div style="font-size:.7rem;color:var(--text-dim);margin-top:4px">
-        Zona muerta: ±200 (centro)
-      </div>
+      <div style="font-size:.7rem;color:var(--text-dim);margin-top:4px">Zona muerta: ±200 (centro)</div>
     </div>
     <div class="param-grid" style="margin-top:6px">
       <div class="param-card temp"><div class="val" id="pTemp">25.0</div><div class="lbl">Temp. DHT22 (°C)</div></div>
@@ -181,16 +167,14 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
     </div>
   </div>
 
-  <!-- CHARTS (5 gráficos) -->
   <div class="charts-area">
     <div class="chart-box"><h3>🌡️ Temperatura DHT22 (°C)</h3><canvas id="chartTemp"></canvas></div>
-    <div class="chart-box"><h3>💧 Humedad DHT22 (%)</h3><canvas id="chartHum"></canvas></div>
-    <div class="chart-box"><h3>⚙️ Velocidad Motor (RPM)</h3><canvas id="chartSpeed"></canvas></div>
-    <div class="chart-box"><h3>💨 Ventilación (%)</h3><canvas id="chartVent"></canvas></div>
+    <div class="chart-box"><h3> Humedad DHT22 (%)</h3><canvas id="chartHum"></canvas></div>
+    <div class="chart-box"><h3>️ Velocidad Motor (RPM)</h3><canvas id="chartSpeed"></canvas></div>
+    <div class="chart-box"><h3> Ventilación (%)</h3><canvas id="chartVent"></canvas></div>
     <div class="chart-box"><h3>🧪 Viscosidad (Pa·s)</h3><canvas id="chartVisc"></canvas></div>
   </div>
 
-  <!-- EQUATIONS -->
   <div class="panel equations">
     <h2>📐 Ecuaciones del Proceso de Conchado</h2>
     <div class="eq-grid" id="eqGrid"></div>
@@ -211,8 +195,8 @@ const CFG = {
   MOISTURE_INIT: 1.5,
   KD: 0.008,
   JOYSTICK_CENTER: 2048,
-  JOYSTICK_DEADZONE: 200,  // Zona muerta: ±200 alrededor del centro
-  MAX_RPM: 30              // Motoreductor: máximo 30 RPM (ajusta según tu motor)
+  JOYSTICK_DEADZONE: 200,
+  MAX_RPM: 30
 };
 
 // ================================================================
@@ -223,26 +207,27 @@ const S = {
   setTemp: 60, setTime: 48, setVent: 50, setMotor: 0,
   actTemp: 25, actHum: 50, actSpeed: 0, actVent: 50, actVisc: 0,
   joystickX: 2048, joystickY: 2048,
-  elapsed: 0, moisture: CFG.MOISTURE_INIT,
-  history: { t:[], temp:[], hum:[], speed:[], vent:[], visc:[] }
+  elapsed: 0, moisture: CFG.MOISTURE_INIT
 };
 
 // ================================================================
 //  THREE.JS — ESCENA 3D
 // ================================================================
-let scene, camera, renderer, controls, rollers = [], steamParticles = [];
-let chocolateMesh, troughOuter;
+let scene, camera, renderer, controls;
+let rollerGroups = [];   // grupos que orbitan (brazo + rodillo)
+let rollerMeshes = [];   // solo los rodillos (para rotación propia)
+let chocolateMesh;
+let orbitAngle = 0;
 
 function initThree() {
   const canvas = document.getElementById('three-canvas');
   const container = canvas.parentElement;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d1117);
-  scene.fog = new THREE.Fog(0x0d1117, 25, 50);
+  scene.background = new THREE.Color(0x1a1a2e);
 
-  camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-  camera.position.set(8, 6, 10);
+  camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+  camera.position.set(5, 6, 7);
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -250,22 +235,21 @@ function initThree() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.2;
+  renderer.toneMappingExposure = 1.3;
 
   controls = new THREE.OrbitControls(camera, canvas);
   controls.enableDamping = true;
-  controls.target.set(0, 1, 0);
+  controls.target.set(0, 2, 0);
 
   // Luces
-  const amb = new THREE.AmbientLight(0xffffff, 0.3);
-  scene.add(amb);
-  const dir = new THREE.DirectionalLight(0xffeedd, 1.0);
-  dir.position.set(5, 10, 7);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+  dir.position.set(5, 10, 5);
   dir.castShadow = true;
   dir.shadow.mapSize.set(1024, 1024);
   scene.add(dir);
-  const pt = new THREE.PointLight(0xff8844, 0.6, 20);
-  pt.position.set(-3, 4, 0);
+  const pt = new THREE.PointLight(0xffeedd, 0.5, 15);
+  pt.position.set(-3, 4, 3);
   scene.add(pt);
 
   // Suelo
@@ -275,13 +259,9 @@ function initThree() {
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
-
-  // Grid
-  const grid = new THREE.GridHelper(30, 30, 0x30363d, 0x1a1a2e);
-  scene.add(grid);
+  scene.add(new THREE.GridHelper(30, 30, 0x30363d, 0x1a1a2e));
 
   buildConche();
-  buildSteam();
 
   window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
@@ -291,202 +271,206 @@ function initThree() {
 }
 
 function buildConche() {
-  // Materiales
-  const steel = new THREE.MeshStandardMaterial({ 
-    color: 0xcccccc, roughness: 0.2, metalness: 0.9 
+  // === MATERIALES ===
+  const steelMat = new THREE.MeshStandardMaterial({ 
+    color: 0xdddddd, roughness: 0.15, metalness: 0.95 
   });
-  const darkSteel = new THREE.MeshStandardMaterial({ 
-    color: 0x555566, roughness: 0.5, metalness: 0.7 
+  const darkSteelMat = new THREE.MeshStandardMaterial({ 
+    color: 0x666677, roughness: 0.4, metalness: 0.8 
   });
-  const redBase = new THREE.MeshStandardMaterial({ 
+  const redMat = new THREE.MeshStandardMaterial({ 
     color: 0xcc2222, roughness: 0.4, metalness: 0.3 
   });
-  const granite = new THREE.MeshStandardMaterial({ 
+  const graniteMat = new THREE.MeshStandardMaterial({ 
     color: 0x888888, roughness: 0.85, metalness: 0.05 
   });
   const chocoMat = new THREE.MeshStandardMaterial({ 
     color: 0x3E1C00, roughness: 0.3, metalness: 0.1 
   });
+  const glassMat = new THREE.MeshStandardMaterial({ 
+    color: 0xaaccff, roughness: 0.1, metalness: 0.1, 
+    transparent: true, opacity: 0.25 
+  });
   const blackMat = new THREE.MeshStandardMaterial({ 
-    color: 0x111111, roughness: 0.7, metalness: 0.2 
+    color: 0x111111, roughness: 0.8, metalness: 0.2 
   });
 
-  const concheGroup = new THREE.Group();
+  const machine = new THREE.Group();
 
-  // === BASE ROJA (motor) ===
-  const baseGeo = new THREE.CylinderGeometry(1.8, 2.0, 0.8, 32);
-  const base = new THREE.Mesh(baseGeo, redBase);
-  base.position.set(0, 0.4, 0);
+  // === BASE (parte roja inferior) ===
+  const baseGeo = new THREE.CylinderGeometry(1.8, 1.9, 0.6, 32);
+  const base = new THREE.Mesh(baseGeo, redMat);
+  base.position.y = 0.3;
   base.castShadow = true;
   base.receiveShadow = true;
-  concheGroup.add(base);
+  machine.add(base);
 
-  // Anillo negro en la base
-  const ringGeo = new THREE.TorusGeometry(1.9, 0.08, 8, 32);
-  const ring = new THREE.Mesh(ringGeo, blackMat);
-  ring.position.set(0, 0.8, 0);
-  ring.rotation.x = Math.PI / 2;
-  concheGroup.add(ring);
+  // Borde inferior de la base
+  const baseRimGeo = new THREE.TorusGeometry(1.9, 0.05, 8, 32);
+  const baseRim = new THREE.Mesh(baseRimGeo, darkSteelMat);
+  baseRim.rotation.x = Math.PI / 2;
+  baseRim.position.y = 0.05;
+  machine.add(baseRim);
 
-  // Patas de la base
-  for (let i = 0; i < 4; i++) {
-    const angle = (i / 4) * Math.PI * 2;
-    const footGeo = new THREE.CylinderGeometry(0.15, 0.18, 0.1, 12);
-    const foot = new THREE.Mesh(footGeo, blackMat);
-    foot.position.set(Math.cos(angle) * 1.7, 0.05, Math.sin(angle) * 1.7);
-    concheGroup.add(foot);
-  }
+  // Borde superior de la base (unión con el tambor)
+  const baseTopRimGeo = new THREE.TorusGeometry(1.8, 0.05, 8, 32);
+  const baseTopRim = new THREE.Mesh(baseTopRimGeo, darkSteelMat);
+  baseTopRim.rotation.x = Math.PI / 2;
+  baseTopRim.position.y = 0.6;
+  machine.add(baseTopRim);
 
-  // === TAZÓN DE ACERO INOXIDABLE ===
-  // Pared exterior
-  const bowlGeo = new THREE.CylinderGeometry(1.7, 1.7, 1.8, 48, 1, true);
-  const bowl = new THREE.Mesh(bowlGeo, steel);
-  bowl.position.set(0, 1.7, 0);
-  bowl.castShadow = true;
-  concheGroup.add(bowl);
+  // Switch ON/OFF en la base
+  const switchPlateGeo = new THREE.BoxGeometry(0.4, 0.25, 0.08);
+  const switchPlate = new THREE.Mesh(switchPlateGeo, blackMat);
+  switchPlate.position.set(0, 0.35, 1.85);
+  machine.add(switchPlate);
 
-  // Fondo del tazón
-  const bottomGeo = new THREE.CircleGeometry(1.7, 48);
-  const bottom = new THREE.Mesh(bottomGeo, steel);
-  bottom.rotation.x = -Math.PI / 2;
-  bottom.position.set(0, 0.8, 0);
-  bottom.receiveShadow = true;
-  concheGroup.add(bottom);
+  const switchBtnGeo = new THREE.BoxGeometry(0.15, 0.12, 0.05);
+  const switchBtn = new THREE.Mesh(switchBtnGeo, new THREE.MeshStandardMaterial({ color: 0x222222 }));
+  switchBtn.position.set(0, 0.35, 1.9);
+  machine.add(switchBtn);
 
-  // Borde superior del tazón
-  const rimGeo = new THREE.TorusGeometry(1.7, 0.05, 8, 48);
-  const rim = new THREE.Mesh(rimGeo, steel);
-  rim.position.set(0, 2.6, 0);
-  rim.rotation.x = Math.PI / 2;
-  concheGroup.add(rim);
+  // Etiqueta "Premier"
+  const labelGeo = new THREE.PlaneGeometry(0.6, 0.15);
+  const labelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x333333 });
+  const label = new THREE.Mesh(labelGeo, labelMat);
+  label.position.set(0, 0.2, 1.86);
+  machine.add(label);
 
-  // === CHOCOLATE (dentro del tazón) ===
-  const chocoGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.5, 48);
+  // === ASAS ROJAS LATERALES ===
+  const handleGeo = new THREE.TorusGeometry(0.2, 0.06, 8, 16, Math.PI);
+  [-1, 1].forEach(side => {
+    const handle = new THREE.Mesh(handleGeo, redMat);
+    handle.position.set(side * 1.9, 0.4, 0);
+    handle.rotation.y = Math.PI / 2 * side;
+    handle.rotation.z = Math.PI / 2;
+    machine.add(handle);
+  });
+
+  // === TAMBOR DE ACERO INOXIDABLE ===
+  const drumGeo = new THREE.CylinderGeometry(1.7, 1.7, 2.2, 32, 1, true);
+  const drum = new THREE.Mesh(drumGeo, steelMat);
+  drum.position.y = 1.7;
+  drum.castShadow = true;
+  machine.add(drum);
+
+  // Borde superior del tambor
+  const drumRimGeo = new THREE.TorusGeometry(1.7, 0.06, 8, 32);
+  const drumRim = new THREE.Mesh(drumRimGeo, darkSteelMat);
+  drumRim.rotation.x = Math.PI / 2;
+  drumRim.position.y = 2.8;
+  machine.add(drumRim);
+
+  // Borde inferior del tambor
+  const drumRimBot = drumRim.clone();
+  drumRimBot.position.y = 0.6;
+  machine.add(drumRimBot);
+
+  // === CHOCOLATE (dentro del tambor) ===
+  const chocoGeo = new THREE.CylinderGeometry(1.55, 1.55, 1.0, 32);
   chocolateMesh = new THREE.Mesh(chocoGeo, chocoMat);
-  chocolateMesh.position.set(0, 1.05, 0);
-  chocolateMesh.receiveShadow = true;
-  concheGroup.add(chocolateMesh);
+  chocolateMesh.position.y = 1.1;
+  machine.add(chocolateMesh);
 
   // Superficie del chocolate
-  const chocoSurfGeo = new THREE.CircleGeometry(1.6, 48);
-  const chocoSurf = new THREE.Mesh(chocoSurfGeo, chocoMat);
-  chocoSurf.rotation.x = -Math.PI / 2;
-  chocoSurf.position.set(0, 1.3, 0);
-  concheGroup.add(chocoSurf);
+  const chocoTopGeo = new THREE.CircleGeometry(1.55, 32);
+  const chocoTop = new THREE.Mesh(chocoTopGeo, chocoMat);
+  chocoTop.rotation.x = -Math.PI / 2;
+  chocoTop.position.y = 1.6;
+  machine.add(chocoTop);
 
-  // === BRAZO CENTRAL (grupo que orbita) ===
-  const armGroup = new THREE.Group();
-  armGroup.position.set(0, 1.3, 0);
-
-  // Eje central vertical
-  const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.8, 16);
-  const shaft = new THREE.Mesh(shaftGeo, darkSteel);
-  shaft.position.set(0, 0.4, 0);
+  // === EJE CENTRAL ===
+  const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.0, 16);
+  const shaft = new THREE.Mesh(shaftGeo, darkSteelMat);
+  shaft.position.y = 2.0;
   shaft.castShadow = true;
-  armGroup.add(shaft);
+  machine.add(shaft);
 
-  // Cabeza del eje (arriba)
+  // Parte superior del eje (cabezal)
   const headGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.3, 16);
-  const head = new THREE.Mesh(headGeo, darkSteel);
-  head.position.set(0, 1.3, 0);
-  armGroup.add(head);
+  const head = new THREE.Mesh(headGeo, darkSteelMat);
+  head.position.y = 3.0;
+  machine.add(head);
 
-  // Brazo horizontal que sostiene los rodillos
-  const armGeo = new THREE.BoxGeometry(2.4, 0.15, 0.2);
-  const arm = new THREE.Mesh(armGeo, darkSteel);
-  arm.position.set(0, 0.8, 0);
-  arm.castShadow = true;
-  armGroup.add(arm);
+  // Manija superior del eje
+  const handleTopGeo = new THREE.BoxGeometry(0.6, 0.08, 0.08);
+  const handleTop = new THREE.Mesh(handleTopGeo, darkSteelMat);
+  handleTop.position.y = 3.15;
+  machine.add(handleTop);
 
-  // Soportes de los rodillos (2)
-  [-0.9, 0.9].forEach(z => {
-    const supportGeo = new THREE.BoxGeometry(0.15, 0.6, 0.15);
-    const support = new THREE.Mesh(supportGeo, darkSteel);
-    support.position.set(0, 0.5, z);
-    armGroup.add(support);
+  // === BRAZOS Y RODILLOS DE GRANITO ===
+  // Cada rodillo está en un grupo que orbita alrededor del eje central
+  const rollerRadius = 0.35;
+  const rollerHeight = 1.2;
+  const orbitRadius = 0.9;  // distancia del centro al rodillo
 
-    // Eje horizontal del rodillo
-    const axleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 12);
-    const axle = new THREE.Mesh(axleGeo, steel);
-    axle.rotation.z = Math.PI / 2;
-    axle.position.set(0, 0.5, z);
-    armGroup.add(axle);
-  });
+  for (let i = 0; i < 2; i++) {
+    const angle = (i * Math.PI);  // 0 y 180 grados (opuestos)
+    
+    // Grupo que orbita
+    const orbitGroup = new THREE.Group();
+    orbitGroup.position.y = 1.6;  // altura del centro del rodillo
+    
+    // Brazo que conecta el eje al rodillo
+    const armGeo = new THREE.BoxGeometry(orbitRadius, 0.15, 0.15);
+    const arm = new THREE.Mesh(armGeo, darkSteelMat);
+    arm.position.x = orbitRadius / 2;
+    arm.castShadow = true;
+    orbitGroup.add(arm);
 
-  // === RODILLOS DE PIEDRA (granito) - 2 ruedas verticales ===
-  const rollerGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 32);
-  [-0.9, 0.9].forEach((z, i) => {
-    const roller = new THREE.Mesh(rollerGeo, granite);
-    // Rodillo vertical: eje Z local = eje de rotación
-    roller.rotation.z = Math.PI / 2;
-    roller.position.set(0, 0.5, z);
+    // Rodillo de granito (cilindro vertical)
+    const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerHeight, 24);
+    const roller = new THREE.Mesh(rollerGeo, graniteMat);
+    roller.position.x = orbitRadius;
     roller.castShadow = true;
-    armGroup.add(roller);
-    rollers.push(roller);
+    orbitGroup.add(roller);
+    rollerMeshes.push(roller);
 
-    // Detalle: anillo en el rodillo (simula textura de piedra)
-    const ringGeo2 = new THREE.TorusGeometry(0.35, 0.02, 8, 32);
-    const ring2 = new THREE.Mesh(ringGeo2, darkSteel);
-    ring2.rotation.z = Math.PI / 2;
-    ring2.position.set(0, 0.5, z);
-    armGroup.add(ring2);
-  });
+    // Eje pequeño del rodillo
+    const axleGeo = new THREE.CylinderGeometry(0.05, 0.05, rollerHeight + 0.3, 8);
+    const axle = new THREE.Mesh(axleGeo, darkSteelMat);
+    axle.position.x = orbitRadius;
+    orbitGroup.add(axle);
 
-  concheGroup.add(armGroup);
-  // Guardamos referencia al brazo para animarlo
-  concheGroup.userData.armGroup = armGroup;
-
-  // === PANEL DE CONTROL (en la base) ===
-  const panelGeo = new THREE.BoxGeometry(0.3, 0.2, 0.1);
-  const panel = new THREE.Mesh(panelGeo, blackMat);
-  panel.position.set(1.5, 0.5, 0);
-  concheGroup.add(panel);
-
-  // Switch
-  const switchGeo = new THREE.BoxGeometry(0.15, 0.1, 0.05);
-  const switchMat = new THREE.MeshStandardMaterial({ 
-    color: 0x00ff00, emissive: 0x004400, emissiveIntensity: 0.3 
-  });
-  const sw = new THREE.Mesh(switchGeo, switchMat);
-  sw.position.set(1.5, 0.5, 0.06);
-  concheGroup.add(sw);
-
-  scene.add(concheGroup);
-}
-
-function buildSteam() {
-  const steamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
-  for (let i = 0; i < 60; i++) {
-    const geo = new THREE.SphereGeometry(0.06 + Math.random() * 0.08, 6, 6);
-    const p = new THREE.Mesh(geo, steamMat.clone());
-    p.position.set(
-      (Math.random() - 0.5) * 2,
-      2.8 + Math.random() * 3,
-      (Math.random() - 0.5) * 4
-    );
-    p.userData = { vy: 0.005 + Math.random() * 0.01, baseX: p.position.x, baseZ: p.position.z };
-    scene.add(p);
-    steamParticles.push(p);
+    // Posicionar el grupo en su ángulo inicial
+    orbitGroup.rotation.y = angle;
+    machine.add(orbitGroup);
+    rollerGroups.push(orbitGroup);
   }
+
+  // === TAPA TRANSPARENTES ===
+  const lidGeo = new THREE.CylinderGeometry(1.75, 1.75, 0.15, 32);
+  const lid = new THREE.Mesh(lidGeo, glassMat);
+  lid.position.y = 2.85;
+  machine.add(lid);
+
+  // Asa de la tapa
+  const lidHandleGeo = new THREE.BoxGeometry(0.5, 0.1, 0.15);
+  const lidHandle = new THREE.Mesh(lidHandleGeo, darkSteelMat);
+  lidHandle.position.y = 2.95;
+  machine.add(lidHandle);
+
+  scene.add(machine);
 }
 
 function animateThree() {
   requestAnimationFrame(animateThree);
   controls.update();
 
+  // Animación de los rodillos
   const rpm = S.actSpeed;
-  
-  // Rotación orbital del brazo (todo el grupo gira alrededor del eje Y)
-  const armGroup = scene.children[scene.children.length - 1]?.userData?.armGroup;
-  if (armGroup) {
-    const orbitSpeed = (rpm / 60) * 0.3;  // Velocidad de órbita
-    armGroup.rotation.y += orbitSpeed;
-  }
+  const orbitSpeed = (rpm / 60) * 0.5;     // velocidad de órbita
+  const spinSpeed = (rpm / 60) * 2.0;      // velocidad de rotación propia (más rápida)
 
-  // Rotación individual de cada rodillo sobre su eje (eje Z local)
-  const rollerSpin = (rpm / 60) * 0.5;
-  rollers.forEach((r, i) => {
-    r.rotation.x += rollerSpin * (i % 2 === 0 ? 1 : -1);
+  // Rotar los grupos de órbita (brazo + rodillo giran alrededor del eje central)
+  orbitAngle += orbitSpeed * 0.016;  // ~60fps
+  rollerGroups.forEach((group, i) => {
+    group.rotation.y = orbitAngle + (i * Math.PI);
+  });
+
+  // Rotar cada rodillo sobre su propio eje vertical
+  rollerMeshes.forEach(roller => {
+    roller.rotation.y += spinSpeed * 0.016;
   });
 
   // Color del chocolate según temperatura
@@ -496,26 +480,14 @@ function animateThree() {
     const g = 0.11 + t * 0.05;
     const b = 0.0;
     chocolateMesh.material.color.setRGB(r, g, b);
+    chocolateMesh.material.roughness = 0.4 - t * 0.2;
   }
-
-  // Partículas de vapor
-  const ventFactor = S.actVent / 100;
-  steamParticles.forEach(p => {
-    p.position.y += p.userData.vy * (0.3 + ventFactor * 2);
-    p.position.x = p.userData.baseX + Math.sin(Date.now() * 0.001 + p.position.y) * 0.15;
-    p.material.opacity = Math.max(0, 0.15 * ventFactor * (1 - (p.position.y - 2.8) / 4));
-    if (p.position.y > 7) {
-      p.position.y = 2.8;
-      p.position.x = p.userData.baseX;
-      p.position.z = p.userData.baseZ;
-    }
-  });
 
   renderer.render(scene, camera);
 }
 
 // ================================================================
-//  CHART.JS — GRÁFICOS EN TIEMPO REAL (5 gráficos)
+//  CHART.JS
 // ================================================================
 let charts = {};
 
@@ -524,7 +496,7 @@ function initCharts() {
   Chart.defaults.borderColor = '#30363d';
   Chart.defaults.font.size = 11;
 
-  const opts = (label, color) => ({
+  const opts = () => ({
     responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
     scales: {
       x: { display: true, grid: { color: '#21262d' }, ticks: { maxTicksLimit: 8 } },
@@ -539,7 +511,7 @@ function initCharts() {
     return new Chart(ctx, {
       type: 'line',
       data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: color + '22', fill: true }] },
-      options: opts(label, color)
+      options: opts()
     });
   };
 
@@ -561,7 +533,7 @@ function pushChart(chart, label, value) {
 }
 
 // ================================================================
-//  KATEX — ECUACIONES
+//  KATEX
 // ================================================================
 function renderEquations() {
   const eqs = [
@@ -570,19 +542,19 @@ function renderEquations() {
       desc: 'A = factor pre-exponencial, Eₐ = energía de activación, R = constante de los gases, T = temperatura absoluta (K).' },
     { title: 'Balance de Energía',
       tex: '\\dot{Q}_{total} = \\dot{Q}_{fricci\\acute{o}n} + \\dot{Q}_{externo} - \\dot{Q}_{evap} - \\dot{Q}_{p\\acute{e}rdida}',
-      desc: 'La energía total incluye fricción de rodillos, calentamiento externo, evaporación de humedad y ácidos volátiles, y pérdidas al ambiente.' },
-    { title: 'Tasa de Evaporación de Humedad',
+      desc: 'La energía total incluye fricción de rodillos, calentamiento externo, evaporación y pérdidas.' },
+    { title: 'Tasa de Evaporación',
       tex: '\\frac{dm_w}{dt} = k \\cdot A_s \\cdot \\bigl(p_{sat}(T) - p_{amb}\\bigr)',
-      desc: 'k = coef. de transferencia de masa, Aₛ = área superficial, p_sat = presión de vapor saturado, p_amb = presión parcial ambiente.' },
+      desc: 'k = coef. transferencia de masa, Aₛ = área superficial, p_sat = presión vapor saturado.' },
     { title: 'Tasa de Cizalladura',
       tex: '\\dot{\\gamma} = \\frac{v_{rodillo}}{h_{gap}}',
-      desc: 'v = velocidad tangencial del rodillo, h_gap = separación entre rodillo y artesa. Determina la refinación de partículas.' },
+      desc: 'v = velocidad tangencial del rodillo, h_gap = separación rodillo-tambor.' },
     { title: 'Potencia de Conchado',
       tex: 'P = \\eta \\cdot \\dot{\\gamma}^2 \\cdot V',
-      desc: 'η = viscosidad aparente, γ̇ = tasa de cizalladura, V = volumen de masa activa. Potencia disipada como calor por fricción.' },
+      desc: 'η = viscosidad aparente, γ̇ = tasa de cizalladura, V = volumen de masa activa.' },
     { title: 'Decaimiento de Humedad',
       tex: 'X(t) = X_0 \\cdot \\exp(-k_d \\cdot t)',
-      desc: 'X₀ = humedad inicial (%), k_d = constante de secado (depende de T y ventilación), t = tiempo de conchado.' }
+      desc: 'X₀ = humedad inicial, k_d = constante de secado, t = tiempo de conchado.' }
   ];
 
   const grid = document.getElementById('eqGrid');
@@ -596,7 +568,7 @@ function renderEquations() {
 }
 
 // ================================================================
-//  COMUNICACIÓN ESP32 (WebSocket)
+//  WEBSOCKET
 // ================================================================
 function toggleConnection() {
   if (S.connected) { disconnect(); } else { connect(); }
@@ -608,25 +580,16 @@ function connect() {
   setStatus('connecting');
   try {
     S.ws = new WebSocket(`ws://${ip}:${CFG.WS_PORT}`);
-    S.ws.onopen = () => {
-      S.connected = true;
-      S.simulating = false;
-      setStatus('ok');
-    };
+    S.ws.onopen = () => { S.connected = true; S.simulating = false; setStatus('ok'); };
     S.ws.onmessage = (evt) => {
       try {
         const d = JSON.parse(evt.data);
-        // Datos del joystick
         if (d.joystick_y !== undefined) S.joystickY = d.joystick_y;
         if (d.joystick_x !== undefined) S.joystickX = d.joystick_x;
-        // Datos del DHT22
         if (d.temp_dht !== undefined) S.actTemp = d.temp_dht;
         if (d.humedad_dht !== undefined) S.actHum = d.humedad_dht;
-        // Velocidad del motor
         if (d.motor_rpm !== undefined) S.actSpeed = d.motor_rpm;
-      } catch(e) {
-        console.error('Error parsing WebSocket message:', e);
-      }
+      } catch(e) { console.error(e); }
     };
     S.ws.onclose = () => { S.connected = false; setStatus('off'); };
     S.ws.onerror = () => { S.connected = false; setStatus('off'); };
@@ -667,45 +630,31 @@ function toggleSim() {
 
 function simulateStep() {
   if (!S.simulating) return;
-
-  // Simular joystick con zona muerta
   const t = Date.now() * 0.001;
   const baseValue = CFG.JOYSTICK_CENTER;
   const oscillation = Math.sin(t * 0.3) * 1500 + Math.sin(t * 0.7) * 400;
   S.joystickY = baseValue + oscillation;
   S.joystickX = baseValue + Math.cos(t * 0.2) * 500;
 
-  // Calcular RPM con zona muerta
   const joyDiff = S.joystickY - CFG.JOYSTICK_CENTER;
   let targetRPM = 0;
-  
   if (Math.abs(joyDiff) > CFG.JOYSTICK_DEADZONE) {
-    // Fuera de zona muerta: mapear a RPM
     const adjustedValue = Math.abs(joyDiff) - CFG.JOYSTICK_DEADZONE;
     const maxAdjusted = 2048 - CFG.JOYSTICK_DEADZONE;
     targetRPM = (adjustedValue / maxAdjusted) * CFG.MAX_RPM;
   }
-  
-  // Suavizar transición
   S.actSpeed += (targetRPM - S.actSpeed) * 0.1;
 
-  // Temperatura: modelo de primer orden con retardo
   const tau = 30;
   S.actTemp += ((S.setTemp - S.actTemp) / tau) + (Math.random() - 0.5) * 0.3;
-
-  // Humedad: disminuye con ventilación y temperatura
   const humTarget = 65 - (S.actVent * 0.3) - ((S.actTemp - 40) * 0.2);
   S.actHum += ((humTarget - S.actHum) * 0.05) + (Math.random() - 0.5) * 0.5;
   S.actHum = Math.max(20, Math.min(90, S.actHum));
-
-  // Ventilación
   S.actVent += (S.setVent - S.actVent) * 0.15;
 
-  // Humedad de la masa decreciente
   const kd = CFG.KD * (S.actVent / 50) * Math.exp(0.03 * (S.actTemp - 50));
   S.moisture = CFG.MOISTURE_INIT * Math.exp(-kd * S.elapsed);
 
-  // Viscosidad Arrhenius
   const T_K = S.actTemp + 273.15;
   S.actVisc = CFG.A_ARRHENIUS * Math.exp(CFG.EA / (CFG.R_GAS * T_K));
   S.actVisc *= (1 + 0.5 * S.moisture);
@@ -714,7 +663,7 @@ function simulateStep() {
 }
 
 // ================================================================
-//  CONTROLES (SLIDERS)
+//  CONTROLES
 // ================================================================
 function onSlider() {
   S.setTemp = +document.getElementById('sliderTemp').value;
@@ -728,30 +677,24 @@ function onSlider() {
   document.getElementById('motorVal').textContent = S.setMotor + ' %';
 
   sendToESP32({ 
-    temperature: S.setTemp, 
-    time: S.setTime, 
-    ventilation: S.setVent,
-    motor_speed: S.setMotor
+    temperature: S.setTemp, time: S.setTime, 
+    ventilation: S.setVent, motor_speed: S.setMotor
   });
 }
 
 // ================================================================
-//  BUCLE PRINCIPAL DE DATOS
+//  BUCLE PRINCIPAL
 // ================================================================
 function dataLoop() {
   setInterval(() => {
     S.elapsed++;
-
     if (S.simulating) simulateStep();
-
     if (S.connected) {
-      // Calcular viscosidad localmente
       const T_K = S.actTemp + 273.15;
       S.actVisc = CFG.A_ARRHENIUS * Math.exp(CFG.EA / (CFG.R_GAS * T_K));
       S.actVent += (S.setVent - S.actVent) * 0.15;
     }
 
-    // Actualizar displays
     document.getElementById('joystickRPM').textContent = Math.round(S.actSpeed);
     document.getElementById('pTemp').textContent = S.actTemp.toFixed(1);
     document.getElementById('pHum').textContent = S.actHum.toFixed(1);
@@ -759,7 +702,6 @@ function dataLoop() {
     document.getElementById('pVent').textContent = Math.round(S.actVent);
     document.getElementById('pVisc').textContent = S.actVisc.toFixed(2);
 
-    // Push charts
     const lbl = S.elapsed + 's';
     pushChart(charts.temp, lbl, +S.actTemp.toFixed(1));
     pushChart(charts.hum, lbl, +S.actHum.toFixed(1));
@@ -769,118 +711,6 @@ function dataLoop() {
   }, CFG.UPDATE_MS);
 }
 
-// ================================================================
-//  CÓDIGO ESP32 (para mostrar en la UI)
-// ================================================================
-const ESP32_CODE = `// ============================================
-// ESP32 — Conchadora de Chocolate con DHT22
-// Bibliotecas: WebSocketsServer, ArduinoJson, DHT
-// ============================================
-#include <WiFi.h>
-#include <WebSocketsServer.h>
-#include <ArduinoJson.h>
-#include <DHT.h>
-
-const char* ssid     = "TU_HOTSPOT_CELULAR";
-const char* password = "TU_PASSWORD";
-
-WebSocketsServer ws(81);
-DHT dht(4, DHT22);
-
-#define JOY_X  34
-#define JOY_Y  35
-#define MOTOR_PIN 27
-#define MOTOR_DIR 26
-
-#define JOYSTICK_CENTER 2048
-#define JOYSTICK_DEADZONE 200
-#define MAX_RPM 30
-
-float setTemp = 60, setVent = 50;
-int motorSpeedWeb = -1;
-
-void setup() {
-  Serial.begin(115200);
-  pinMode(MOTOR_PIN, OUTPUT);
-  pinMode(MOTOR_DIR, OUTPUT);
-  digitalWrite(MOTOR_DIR, HIGH);
-  ledcAttach(MOTOR_PIN, 5000, 8);
-  dht.begin();
-  
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500); Serial.print(".");
-  }
-  Serial.println("\\nIP: " + WiFi.localIP().toString());
-  
-  ws.begin();
-  ws.onEvent(wsEvent);
-}
-
-void wsEvent(uint8_t num, WStype_t type,
-             uint8_t* payload, size_t len) {
-  if (type == WStype_TEXT) {
-    StaticJsonDocument<256> doc;
-    if (!deserializeJson(doc, payload, len)) {
-      if (doc.containsKey("temperature"))
-        setTemp = doc["temperature"];
-      if (doc.containsKey("ventilation"))
-        setVent = doc["ventilation"];
-      if (doc.containsKey("motor_speed"))
-        motorSpeedWeb = doc["motor_speed"];
-    }
-  }
-}
-
-int calculateRPM(int joystickY) {
-  int diff = abs(joystickY - JOYSTICK_CENTER);
-  if (diff <= JOYSTICK_DEADZONE) {
-    return 0;  // Zona muerta
-  }
-  int adjusted = diff - JOYSTICK_DEADZONE;
-  int maxAdjusted = 2048 - JOYSTICK_DEADZONE;
-  return map(adjusted, 0, maxAdjusted, 0, MAX_RPM);
-}
-
-void loop() {
-  ws.loop();
-  int joyX = analogRead(JOY_X);
-  int joyY = analogRead(JOY_Y);
-  
-  int motorRPM;
-  if (motorSpeedWeb >= 0) {
-    motorRPM = map(motorSpeedWeb, 0, 100, 0, MAX_RPM);
-  } else {
-    motorRPM = calculateRPM(joyY);
-  }
-  
-  int motorPWM = map(motorRPM, 0, MAX_RPM, 0, 255);
-  ledcWrite(MOTOR_PIN, motorPWM);
-
-  static unsigned long last = 0, lastDHT = 0;
-  static float tempDHT = 25, humDHT = 50;
-  
-  if (millis() - lastDHT > 2000) {
-    lastDHT = millis();
-    float t = dht.readTemperature();
-    float h = dht.readHumidity();
-    if (!isnan(t)) tempDHT = t;
-    if (!isnan(h)) humDHT = h;
-  }
-  
-  if (millis() - last > 500) {
-    last = millis();
-    StaticJsonDocument<256> doc;
-    doc["joystick_x"] = joyX;
-    doc["joystick_y"] = joyY;
-    doc["temp_dht"] = tempDHT;
-    doc["humedad_dht"] = humDHT;
-    doc["motor_rpm"] = motorRPM;
-    String out;
-    serializeJson(doc, out);
-    ws.broadcastTXT(out);
-  }
-}`;
 
 // ================================================================
 //  INICIALIZACIÓN
