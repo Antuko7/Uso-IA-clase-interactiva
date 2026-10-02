@@ -363,7 +363,7 @@ const orbitRadius = 0.85;       // Distancia del centro al rodillo
 for (let i = 0; i < 2; i++) {
   const angle = (i * Math.PI);  // 0° y 180° (opuestos)
   const orbitGroup = new THREE.Group();
-  orbitGroup.position.y = 1.1;  // Altura base del rodillo
+  orbitGroup.position.y = 1.4;  // Altura base del rodillo
 
   // Brazo horizontal que conecta el eje al rodillo
   const armGeo = new THREE.BoxGeometry(orbitRadius, 0.12, 0.12);
@@ -438,10 +438,9 @@ function animateThree() {
     group.rotation.y = orbitAngle + (i * Math.PI);
   });
 
-  // ✅ Rotar cada rodillo sobre su eje Y (vertical)
-  const axisY = new THREE.Vector3(0, 1, 0);
+  // ✅ Rotación CORRECTA: usar rotation.y directamente (eje local)
   rollerMeshes.forEach(roller => {
-    roller.rotateOnAxis(axisY, spinSpeed * 0.016);
+    roller.rotation.y += spinSpeed * 0.016;
   });
 
   // Color del chocolate
