@@ -736,6 +736,130 @@ function dataLoop() {
   }, CFG.UPDATE_MS);
 }
 
+// ================================================================
+//  CÓDIGO ESP32
+// ================================================================
+const ESP32_CODE = `// ============================================
+// ESP32 — Conchadora tipo Wet Grinder con DHT22
+// Lógica de joystick crucero
+// Bibliotecas: WebSocketsServer, ArduinoJson, DHT
+// ============================================
+#include <WiFi.h>
+#include <WebSocketsServer.h>
+#include <ArduinoJson.h>
+#include <DHT.h>
+
+const char* ssid     = "TU_HOTSPOT_CELULAR";
+const char* password = "TU_PASSWORD";
+
+WebSocketsServer ws(81);
+DHT dht(4, DHT22);
+
+#define JOY_X  34
+#define JOY_Y  35
+#define MOTOR_PIN 27
+#define MOTOR_DIR 26
+
+#define JOYSTICK_CENTER 2048
+#define JOYSTICK_DEADZONE 150
+#define MAX_RPM 30
+#define SMOOTHING 0.08
+
+float setTemp = 60, setVent = 50;
+int motorSpeedWeb = -1;
+float currentSpeed = 0;
+float targetSpeed = 0;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(MOTOR_PIN, OUTPUT);
+  pinMode(MOTOR_DIR, OUTPUT);
+  digitalWrite(MOTOR_DIR, HIGH);
+  ledcAttach(MOTOR_PIN, 5000, 8);
+  dht.begin();
+  
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500); Serial.print(".");
+  }
+  Serial.println("\\nIP: " + WiFi.localIP().toString());
+  
+  ws.begin();
+  ws.onEvent(wsEvent);
+}
+
+void wsEvent(uint8_t num, WStype_t type,
+             uint8_t* payload, size_t len) {
+  if (type == WStype_TEXT) {
+    StaticJsonDocument<256> doc;
+    if (!deserializeJson(doc, payload, len)) {
+      if (doc.containsKey("temperature"))
+        setTemp = doc["temperature"];
+      if (doc.containsKey("ventilation"))
+        setVent = doc["ventilation"];
+      if (doc.containsKey("motor_speed"))
+        motorSpeedWeb = doc["motor_speed"];
+    }
+  }
+}
+
+float calculateSetpoint(int joystickY) {
+  int diff = abs(joystickY - JOYSTICK_CENTER);
+  if (diff <= JOYSTICK_DEADZONE) {
+    return targetSpeed;  // Mantener valor anterior (crucero)
+  }
+  int adjusted = diff - JOYSTICK_DEADZONE;
+  int maxAdjusted = 2048 - JOYSTICK_DEADZONE;
+  return map(adjusted, 0, maxAdjusted, 0, MAX_RPM * 10) / 10.0;
+}
+
+void loop() {
+  ws.loop();
+  int joyX = analogRead(JOY_X);
+  int joyY = analogRead(JOY_Y);
+  
+  // Calcular setpoint desde joystick físico
+  float newSetpoint = calculateSetpoint(joyY);
+  
+  // Si hay control desde web, tiene prioridad
+  if (motorSpeedWeb >= 0) {
+    targetSpeed = map(motorSpeedWeb, 0, 100, 0, MAX_RPM * 10) / 10.0;
+  } else {
+    targetSpeed = newSetpoint;
+  }
+  
+  // Suavizar velocidad actual hacia el setpoint
+  currentSpeed += (targetSpeed - currentSpeed) * SMOOTHING;
+  
+  int motorPWM = map((int)(currentSpeed * 10), 0, MAX_RPM * 10, 0, 255);
+  ledcWrite(MOTOR_PIN, motorPWM);
+  int motorRPM = (int)currentSpeed;
+
+  static unsigned long last = 0, lastDHT = 0;
+  static float tempDHT = 25, humDHT = 50;
+  
+  if (millis() - lastDHT > 2000) {
+    lastDHT = millis();
+    float t = dht.readTemperature();
+    float h = dht.readHumidity();
+    if (!isnan(t)) tempDHT = t;
+    if (!isnan(h)) humDHT = h;
+  }
+  
+  if (millis() - last > 500) {
+    last = millis();
+    StaticJsonDocument<256> doc;
+    doc["joystick_x"] = joyX;
+    doc["joystick_y"] = joyY;
+    doc["temp_dht"] = tempDHT;
+    doc["humedad_dht"] = humDHT;
+    doc["motor_rpm"] = motorRPM;
+    doc["target_rpm"] = (int)targetSpeed;
+    String out;
+    serializeJson(doc, out);
+    ws.broadcastTXT(out);
+  }
+}`;
 
 
 // ================================================================
