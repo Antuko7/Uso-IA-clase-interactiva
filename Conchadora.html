@@ -273,65 +273,68 @@ function initThree() {
 function buildConche() {
   // === MATERIALES ===
   const steelMat = new THREE.MeshStandardMaterial({ 
-    color: 0xdddddd, roughness: 0.15, metalness: 0.95 
+    color: 0xe0e0e0, roughness: 0.1, metalness: 0.95 
   });
   const darkSteelMat = new THREE.MeshStandardMaterial({ 
-    color: 0x444455, roughness: 0.4, metalness: 0.8 
+    color: 0x555566, roughness: 0.3, metalness: 0.8 
   });
   const redMat = new THREE.MeshStandardMaterial({ 
     color: 0xcc2222, roughness: 0.4, metalness: 0.3 
   });
   const graniteMat = new THREE.MeshStandardMaterial({ 
-    color: 0x999999, roughness: 0.9, metalness: 0.0 
+    color: 0x777777, roughness: 0.95, metalness: 0.0 
   });
   const chocoMat = new THREE.MeshStandardMaterial({ 
-    color: 0x3E1C00, roughness: 0.3, metalness: 0.1 
+    color: 0x3E1C00, roughness: 0.25, metalness: 0.05 
   });
   const glassMat = new THREE.MeshStandardMaterial({ 
-    color: 0xaaccff, roughness: 0.1, metalness: 0.1, 
-    transparent: true, opacity: 0.25 
+    color: 0xaaccff, roughness: 0.05, metalness: 0.1, 
+    transparent: true, opacity: 0.2 
   });
   const blackMat = new THREE.MeshStandardMaterial({ 
     color: 0x111111, roughness: 0.8, metalness: 0.2 
   });
+  const whitePlasticMat = new THREE.MeshStandardMaterial({ 
+    color: 0xeeeeee, roughness: 0.5, metalness: 0.1 
+  });
 
   const machine = new THREE.Group();
 
-  // === BASE (parte roja inferior) ===
-  const baseGeo = new THREE.CylinderGeometry(1.8, 1.9, 0.6, 32);
-  const base = new THREE.Mesh(baseGeo, redMat);
-  base.position.y = 0.3;
-  base.castShadow = true;
-  base.receiveShadow = true;
-  machine.add(base);
+  // === BASE CON FRANJAS (plateado/rojo/plateado) ===
+  // Franja inferior plateada
+  const baseBottomGeo = new THREE.CylinderGeometry(1.85, 1.95, 0.2, 32);
+  const baseBottom = new THREE.Mesh(baseBottomGeo, steelMat);
+  baseBottom.position.y = 0.1;
+  baseBottom.castShadow = true;
+  machine.add(baseBottom);
 
-  // Borde inferior de la base
-  const baseRimGeo = new THREE.TorusGeometry(1.9, 0.05, 8, 32);
-  const baseRim = new THREE.Mesh(baseRimGeo, darkSteelMat);
-  baseRim.rotation.x = Math.PI / 2;
-  baseRim.position.y = 0.05;
-  machine.add(baseRim);
+  // Franja central roja
+  const baseMiddleGeo = new THREE.CylinderGeometry(1.82, 1.82, 0.35, 32);
+  const baseMiddle = new THREE.Mesh(baseMiddleGeo, redMat);
+  baseMiddle.position.y = 0.375;
+  baseMiddle.castShadow = true;
+  machine.add(baseMiddle);
 
-  // Borde superior de la base
-  const baseTopRimGeo = new THREE.TorusGeometry(1.8, 0.05, 8, 32);
-  const baseTopRim = new THREE.Mesh(baseTopRimGeo, darkSteelMat);
-  baseTopRim.rotation.x = Math.PI / 2;
-  baseTopRim.position.y = 0.6;
-  machine.add(baseTopRim);
+  // Franja superior plateada
+  const baseTopGeo = new THREE.CylinderGeometry(1.82, 1.82, 0.2, 32);
+  const baseTop = new THREE.Mesh(baseTopGeo, steelMat);
+  baseTop.position.y = 0.65;
+  baseTop.castShadow = true;
+  machine.add(baseTop);
 
-  // Switch ON/OFF en la base
-  const switchPlateGeo = new THREE.BoxGeometry(0.4, 0.25, 0.08);
+  // Switch ON/OFF
+  const switchPlateGeo = new THREE.BoxGeometry(0.5, 0.3, 0.05);
   const switchPlate = new THREE.Mesh(switchPlateGeo, blackMat);
   switchPlate.position.set(0, 0.35, 1.85);
   machine.add(switchPlate);
 
-  const switchBtnGeo = new THREE.BoxGeometry(0.15, 0.12, 0.05);
-  const switchBtn = new THREE.Mesh(switchBtnGeo, new THREE.MeshStandardMaterial({ color: 0x222222 }));
-  switchBtn.position.set(0, 0.35, 1.9);
+  const switchBtnGeo = new THREE.BoxGeometry(0.2, 0.15, 0.03);
+  const switchBtn = new THREE.Mesh(switchBtnGeo, new THREE.MeshStandardMaterial({ color: 0x333333 }));
+  switchBtn.position.set(0, 0.35, 1.88);
   machine.add(switchBtn);
 
   // === ASAS ROJAS LATERALES ===
-  const handleGeo = new THREE.TorusGeometry(0.2, 0.06, 8, 16, Math.PI);
+  const handleGeo = new THREE.TorusGeometry(0.25, 0.08, 8, 16, Math.PI);
   [-1, 1].forEach(side => {
     const handle = new THREE.Mesh(handleGeo, redMat);
     handle.position.set(side * 1.9, 0.4, 0);
@@ -341,76 +344,73 @@ function buildConche() {
   });
 
   // === TAMBOR DE ACERO INOXIDABLE ===
-  const drumGeo = new THREE.CylinderGeometry(1.7, 1.7, 2.2, 32, 1, true);
+  const drumGeo = new THREE.CylinderGeometry(1.75, 1.75, 2.0, 32, 1, true);
   const drum = new THREE.Mesh(drumGeo, steelMat);
-  drum.position.y = 1.7;
+  drum.position.y = 1.65;
   drum.castShadow = true;
   machine.add(drum);
 
-  // Borde superior del tambor
-  const drumRimGeo = new THREE.TorusGeometry(1.7, 0.06, 8, 32);
-  const drumRim = new THREE.Mesh(drumRimGeo, darkSteelMat);
+  // Borde superior del tambor (anillo grueso)
+  const drumRimGeo = new THREE.TorusGeometry(1.75, 0.08, 8, 32);
+  const drumRim = new THREE.Mesh(drumRimGeo, steelMat);
   drumRim.rotation.x = Math.PI / 2;
-  drumRim.position.y = 2.8;
+  drumRim.position.y = 2.65;
   machine.add(drumRim);
 
-  // Borde inferior del tambor
-  const drumRimBot = drumRim.clone();
-  drumRimBot.position.y = 0.6;
-  machine.add(drumRimBot);
-
-  // === CHOCOLATE (dentro del tambor) ===
-  const chocoGeo = new THREE.CylinderGeometry(1.55, 1.55, 1.0, 32);
+  // === CHOCOLATE (llena casi todo el fondo) ===
+  const chocoGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.8, 32);
   chocolateMesh = new THREE.Mesh(chocoGeo, chocoMat);
-  chocolateMesh.position.y = 1.1;
+  chocolateMesh.position.y = 1.0;
   machine.add(chocolateMesh);
 
   // Superficie del chocolate
-  const chocoTopGeo = new THREE.CircleGeometry(1.55, 32);
+  const chocoTopGeo = new THREE.CircleGeometry(1.6, 32);
   const chocoTop = new THREE.Mesh(chocoTopGeo, chocoMat);
   chocoTop.rotation.x = -Math.PI / 2;
-  chocoTop.position.y = 1.6;
+  chocoTop.position.y = 1.4;
   machine.add(chocoTop);
 
-  // === EJE CENTRAL ===
-  const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.0, 16);
-  const shaft = new THREE.Mesh(shaftGeo, darkSteelMat);
-  shaft.position.y = 2.0;
+  // === EJE CENTRAL CON FORMA DE "T" ===
+  // Poste vertical
+  const shaftGeo = new THREE.CylinderGeometry(0.15, 0.15, 1.8, 16);
+  const shaft = new THREE.Mesh(shaftGeo, whitePlasticMat);
+  shaft.position.y = 2.1;
   shaft.castShadow = true;
   machine.add(shaft);
 
-  // Parte superior del eje (cabezal)
-  const headGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.3, 16);
-  const head = new THREE.Mesh(headGeo, darkSteelMat);
+  // Cabezal superior (más ancho, como hongo)
+  const headGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 16);
+  const head = new THREE.Mesh(headGeo, whitePlasticMat);
   head.position.y = 3.0;
+  head.castShadow = true;
   machine.add(head);
 
-  // Manija superior del eje
-  const handleTopGeo = new THREE.BoxGeometry(0.6, 0.08, 0.08);
-  const handleTop = new THREE.Mesh(handleTopGeo, darkSteelMat);
-  handleTop.position.y = 3.15;
-  machine.add(handleTop);
+  // Detalle superior del cabezal (círculo pequeño)
+  const headTopGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16);
+  const headTop = new THREE.Mesh(headTopGeo, darkSteelMat);
+  headTop.position.y = 3.25;
+  machine.add(headTop);
 
   // === BRAZOS Y RODILLOS DE GRANITO ===
-  const rollerRadius = 0.35;
-  const rollerHeight = 1.2;
-  const orbitRadius = 0.9;
+  // ✅ Rodillos MÁS GRANDES y MÁS JUNTOS (como en la foto)
+  const rollerRadius = 0.5;      // Antes 0.35
+  const rollerHeight = 1.4;      // Antes 1.2
+  const orbitRadius = 0.55;      // Antes 0.9 (más cerca del centro)
 
   for (let i = 0; i < 2; i++) {
     const angle = (i * Math.PI);
     
-    // Grupo que orbita
     const orbitGroup = new THREE.Group();
-    orbitGroup.position.y = 1.6;
+    orbitGroup.position.y = 1.5;
     
-    // Brazo que conecta el eje al rodillo
-    const armGeo = new THREE.BoxGeometry(orbitRadius, 0.15, 0.15);
-    const arm = new THREE.Mesh(armGeo, darkSteelMat);
+    // ✅ Brazo corto que conecta el eje al rodillo
+    const armGeo = new THREE.BoxGeometry(orbitRadius, 0.2, 0.2);
+    const arm = new THREE.Mesh(armGeo, whitePlasticMat);
     arm.position.x = orbitRadius / 2;
     arm.castShadow = true;
     orbitGroup.add(arm);
 
-    // ✅ RODILLO DE GRANITO - Cilindro VERTICAL bien definido
+    // ✅ RODILLO DE GRANITO GRANDE
     const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerHeight, 24);
     const roller = new THREE.Mesh(rollerGeo, graniteMat);
     roller.position.x = orbitRadius;
@@ -418,41 +418,47 @@ function buildConche() {
     orbitGroup.add(roller);
     rollerMeshes.push(roller);
 
-    // ✅ Eje del rodillo (visible, para que se note la rotación)
-    const axleGeo = new THREE.CylinderGeometry(0.08, 0.08, rollerHeight + 0.4, 12);
-    const axleMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.3, metalness: 0.7 });
-    const axle = new THREE.Mesh(axleGeo, axleMat);
+    // ✅ Eje del rodillo (visible arriba y abajo)
+    const axleGeo = new THREE.CylinderGeometry(0.06, 0.06, rollerHeight + 0.3, 8);
+    const axle = new THREE.Mesh(axleGeo, darkSteelMat);
     axle.position.x = orbitRadius;
     orbitGroup.add(axle);
 
-    // ✅ Marca en el rodillo para visualizar la rotación
-    const markGeo = new THREE.BoxGeometry(0.05, rollerHeight * 0.8, 0.02);
-    const markMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    // ✅ ASAS METÁLICAS en los extremos del rodillo (como en la foto)
+    const handleRingGeo = new THREE.TorusGeometry(0.12, 0.03, 8, 16);
+    [rollerHeight/2 + 0.1, -rollerHeight/2 - 0.1].forEach(yOffset => {
+      const handleRing = new THREE.Mesh(handleRingGeo, darkSteelMat);
+      handleRing.position.set(orbitRadius, yOffset, 0);
+      handleRing.rotation.x = Math.PI / 2;
+      orbitGroup.add(handleRing);
+    });
+
+    // ✅ Marca en el rodillo para visualizar rotación
+    const markGeo = new THREE.BoxGeometry(0.04, rollerHeight * 0.7, 0.02);
+    const markMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
     const mark = new THREE.Mesh(markGeo, markMat);
     mark.position.set(orbitRadius + rollerRadius - 0.01, 0, 0);
     orbitGroup.add(mark);
 
-    // Posicionar el grupo en su ángulo inicial
     orbitGroup.rotation.y = angle;
     machine.add(orbitGroup);
     rollerGroups.push(orbitGroup);
   }
 
   // === TAPA TRANSPARENTES ===
-  const lidGeo = new THREE.CylinderGeometry(1.75, 1.75, 0.15, 32);
+  const lidGeo = new THREE.CylinderGeometry(1.78, 1.78, 0.1, 32);
   const lid = new THREE.Mesh(lidGeo, glassMat);
-  lid.position.y = 2.85;
+  lid.position.y = 2.7;
   machine.add(lid);
 
   // Asa de la tapa
-  const lidHandleGeo = new THREE.BoxGeometry(0.5, 0.1, 0.15);
-  const lidHandle = new THREE.Mesh(lidHandleGeo, darkSteelMat);
-  lidHandle.position.y = 2.95;
+  const lidHandleGeo = new THREE.BoxGeometry(0.6, 0.12, 0.15);
+  const lidHandle = new THREE.Mesh(lidHandleGeo, whitePlasticMat);
+  lidHandle.position.y = 2.78;
   machine.add(lidHandle);
 
   scene.add(machine);
 }
-
 function animateThree() {
   requestAnimationFrame(animateThree);
   controls.update();
