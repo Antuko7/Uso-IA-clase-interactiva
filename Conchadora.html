@@ -356,59 +356,63 @@ function buildConche() {
   machine.add(headTop);
 
 // === BRAZOS Y RODILLOS VERTICALES (como en la foto Premier) ===
-const rollerRadius = 0.45;      // Radio del rodillo (ancho)
-const rollerHeight = 1.0;       // Altura del rodillo (de pie)
-const orbitRadius = 0.85;       // Distancia del centro al rodillo
+const rollerRadius = 0.45;
+const rollerHeight = 1.0;
+const orbitRadius = 0.85;
 
 for (let i = 0; i < 2; i++) {
-  const angle = (i * Math.PI);  // 0° y 180° (opuestos)
+  const angle = (i * Math.PI);
+  
+  // GRUPO DE ÓRBITA: rota alrededor del eje central
   const orbitGroup = new THREE.Group();
-  orbitGroup.position.y = 1.4;  // Altura base del rodillo
+  orbitGroup.position.y = 1.4;  // Elevado sobre el chocolate
 
-  // Brazo horizontal que conecta el eje al rodillo
+  // Brazo horizontal
   const armGeo = new THREE.BoxGeometry(orbitRadius, 0.12, 0.12);
   const arm = new THREE.Mesh(armGeo, whitePlasticMat);
   arm.position.x = orbitRadius / 2;
   arm.castShadow = true;
   orbitGroup.add(arm);
 
-  // ✅ RODILLO VERTICAL (cilindro de pie, eje Y)
+  // ✅ SUB-GRUPO para el rodillo: maneja SOLO la rotación propia
+  const rollerSubGroup = new THREE.Group();
+  rollerSubGroup.position.x = orbitRadius;
+  orbitGroup.add(rollerSubGroup);
+
+  // Rodillo vertical (cilindro por defecto en Three.js ya es vertical)
   const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerHeight, 24);
   const roller = new THREE.Mesh(rollerGeo, graniteMat);
-  roller.position.x = orbitRadius;  // En el extremo del brazo
   roller.position.y = rollerHeight / 2;  // Centrado verticalmente
   roller.castShadow = true;
-  orbitGroup.add(roller);
+  rollerSubGroup.add(roller);  // ✅ Agregar al sub-grupo, no al orbitGroup
   rollerMeshes.push(roller);
 
-  // Eje vertical del rodillo (sobresale arriba y abajo)
+  // Eje vertical
   const axleGeo = new THREE.CylinderGeometry(0.05, 0.05, rollerHeight + 0.4, 8);
   const axle = new THREE.Mesh(axleGeo, darkSteelMat);
-  axle.position.x = orbitRadius;
   axle.position.y = rollerHeight / 2;
-  orbitGroup.add(axle);
+  rollerSubGroup.add(axle);
 
-  // Asas metálicas en los extremos superior e inferior
+  // Asas metálicas arriba y abajo
   const handleRingGeo = new THREE.TorusGeometry(0.1, 0.025, 8, 16);
   [rollerHeight + 0.1, -0.1].forEach(yOffset => {
     const handleRing = new THREE.Mesh(handleRingGeo, darkSteelMat);
-    handleRing.position.set(orbitRadius, yOffset, 0);
+    handleRing.position.y = yOffset;
     handleRing.rotation.x = Math.PI / 2;
-    orbitGroup.add(handleRing);
+    rollerSubGroup.add(handleRing);
   });
 
-  // Marca para visualizar rotación (línea vertical en el rodillo)
+  // Marca para ver la rotación
   const markGeo = new THREE.BoxGeometry(0.03, rollerHeight * 0.7, 0.04);
   const markMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
   const mark = new THREE.Mesh(markGeo, markMat);
-  mark.position.set(orbitRadius + rollerRadius - 0.01, rollerHeight / 2, 0);
-  orbitGroup.add(mark);
+  mark.position.set(rollerRadius - 0.01, rollerHeight / 2, 0);
+  rollerSubGroup.add(mark);
 
   orbitGroup.rotation.y = angle;
   machine.add(orbitGroup);
   rollerGroups.push(orbitGroup);
 }
-
   
   // TAPA
   const lidGeo = new THREE.CylinderGeometry(1.78, 1.78, 0.1, 32);
@@ -438,8 +442,9 @@ function animateThree() {
     group.rotation.y = orbitAngle + (i * Math.PI);
   });
 
-  // ✅ Rotación CORRECTA: usar rotation.y directamente (eje local)
+  // ✅ Rotar cada rodillo sobre su eje Y LOCAL (dentro de su sub-grupo)
   rollerMeshes.forEach(roller => {
+    // El rodillo está en un sub-grupo, así que rotation.y es su eje vertical local
     roller.rotation.y += spinSpeed * 0.016;
   });
 
