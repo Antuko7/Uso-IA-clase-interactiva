@@ -291,179 +291,169 @@ function initThree() {
 }
 
 function buildConche() {
-  // Materiales mejorados
+  // Materiales
   const steel = new THREE.MeshStandardMaterial({ 
-    color: 0x999999, roughness: 0.4, metalness: 0.7 
+    color: 0xcccccc, roughness: 0.2, metalness: 0.9 
   });
   const darkSteel = new THREE.MeshStandardMaterial({ 
-    color: 0x444455, roughness: 0.6, metalness: 0.6 
+    color: 0x555566, roughness: 0.5, metalness: 0.7 
   });
-  const copper = new THREE.MeshStandardMaterial({ 
-    color: 0xcd7f32, roughness: 0.3, metalness: 0.8 
+  const redBase = new THREE.MeshStandardMaterial({ 
+    color: 0xcc2222, roughness: 0.4, metalness: 0.3 
+  });
+  const granite = new THREE.MeshStandardMaterial({ 
+    color: 0x888888, roughness: 0.85, metalness: 0.05 
   });
   const chocoMat = new THREE.MeshStandardMaterial({ 
     color: 0x3E1C00, roughness: 0.3, metalness: 0.1 
   });
-  const redMat = new THREE.MeshStandardMaterial({ 
-    color: 0xcc3333, roughness: 0.6, metalness: 0.3 
-  });
-  
-  // ✅ Material de rodillos CORREGIDO: más visible, menos reflectivo
-  const rollerMat = new THREE.MeshStandardMaterial({ 
-    color: 0xcccccc,      // Gris claro (antes 0xaaaaaa)
-    roughness: 0.4,        // Más rugoso (antes 0.2)
-    metalness: 0.6         // Menos metálico (antes 0.95)
+  const blackMat = new THREE.MeshStandardMaterial({ 
+    color: 0x111111, roughness: 0.7, metalness: 0.2 
   });
 
   const concheGroup = new THREE.Group();
 
-  // === BASE / PATAS ===
-  const legGeo = new THREE.BoxGeometry(0.3, 1.2, 0.3);
-  const legPositions = [[-2.8, 0.6, -1.3], [2.8, 0.6, -1.3], [-2.8, 0.6, 1.3], [2.8, 0.6, 1.3]];
-  legPositions.forEach(p => {
-    const leg = new THREE.Mesh(legGeo, darkSteel);
-    leg.position.set(...p);
-    leg.castShadow = true;
-    concheGroup.add(leg);
-  });
+  // === BASE ROJA (motor) ===
+  const baseGeo = new THREE.CylinderGeometry(1.8, 2.0, 0.8, 32);
+  const base = new THREE.Mesh(baseGeo, redBase);
+  base.position.set(0, 0.4, 0);
+  base.castShadow = true;
+  base.receiveShadow = true;
+  concheGroup.add(base);
 
-  // Travesaños base
-  const beamGeo1 = new THREE.BoxGeometry(6, 0.15, 0.2);
-  [-1.3, 1.3].forEach(z => {
-    const b = new THREE.Mesh(beamGeo1, darkSteel);
-    b.position.set(0, 1.2, z);
-    concheGroup.add(b);
-  });
-  const beamGeo2 = new THREE.BoxGeometry(0.2, 0.15, 2.8);
-  [-2.8, 2.8].forEach(x => {
-    const b = new THREE.Mesh(beamGeo2, darkSteel);
-    b.position.set(x, 1.2, 0);
-    concheGroup.add(b);
-  });
+  // Anillo negro en la base
+  const ringGeo = new THREE.TorusGeometry(1.9, 0.08, 8, 32);
+  const ring = new THREE.Mesh(ringGeo, blackMat);
+  ring.position.set(0, 0.8, 0);
+  ring.rotation.x = Math.PI / 2;
+  concheGroup.add(ring);
 
-  // === ARTESA (TROUGH) - semicilindro horizontal ===
-  const troughGeo = new THREE.CylinderGeometry(1.4, 1.4, 6, 48, 1, true, 0, Math.PI);
-  troughOuter = new THREE.Mesh(troughGeo, steel);
-  troughOuter.rotation.x = Math.PI / 2;
-  troughOuter.rotation.z = Math.PI;
-  troughOuter.position.set(0, 2.6, 0);
-  troughOuter.castShadow = true;
-  concheGroup.add(troughOuter);
+  // Patas de la base
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const footGeo = new THREE.CylinderGeometry(0.15, 0.18, 0.1, 12);
+    const foot = new THREE.Mesh(footGeo, blackMat);
+    foot.position.set(Math.cos(angle) * 1.7, 0.05, Math.sin(angle) * 1.7);
+    concheGroup.add(foot);
+  }
 
-  // Tapas laterales (semicírculos)
-  const capShape = new THREE.Shape();
-  capShape.absarc(0, 0, 1.4, 0, Math.PI, false);
-  capShape.lineTo(-1.4, 0);
-  const capGeo = new THREE.ShapeGeometry(capShape);
-  [-3, 3].forEach(z => {
-    const cap = new THREE.Mesh(capGeo, steel);
-    cap.position.set(0, 2.6, z);
-    if (z > 0) cap.rotation.y = Math.PI;
-    cap.castShadow = true;
-    concheGroup.add(cap);
-  });
+  // === TAZÓN DE ACERO INOXIDABLE ===
+  // Pared exterior
+  const bowlGeo = new THREE.CylinderGeometry(1.7, 1.7, 1.8, 48, 1, true);
+  const bowl = new THREE.Mesh(bowlGeo, steel);
+  bowl.position.set(0, 1.7, 0);
+  bowl.castShadow = true;
+  concheGroup.add(bowl);
 
-  // Borde superior (cobre)
-  const rimGeo = new THREE.TorusGeometry(1.4, 0.06, 8, 48, Math.PI);
-  [-3, 3].forEach(z => {
-    const rim = new THREE.Mesh(rimGeo, copper);
-    rim.position.set(0, 2.6, z);
-    rim.rotation.y = Math.PI / 2;
-    rim.rotation.x = Math.PI / 2;
-    concheGroup.add(rim);
-  });
+  // Fondo del tazón
+  const bottomGeo = new THREE.CircleGeometry(1.7, 48);
+  const bottom = new THREE.Mesh(bottomGeo, steel);
+  bottom.rotation.x = -Math.PI / 2;
+  bottom.position.set(0, 0.8, 0);
+  bottom.receiveShadow = true;
+  concheGroup.add(bottom);
 
-  // === CHOCOLATE (dentro de la artesa) ===
-  const chocoGeo = new THREE.CylinderGeometry(1.25, 1.25, 5.8, 48, 1, true, 0, Math.PI);
+  // Borde superior del tazón
+  const rimGeo = new THREE.TorusGeometry(1.7, 0.05, 8, 48);
+  const rim = new THREE.Mesh(rimGeo, steel);
+  rim.position.set(0, 2.6, 0);
+  rim.rotation.x = Math.PI / 2;
+  concheGroup.add(rim);
+
+  // === CHOCOLATE (dentro del tazón) ===
+  const chocoGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.5, 48);
   chocolateMesh = new THREE.Mesh(chocoGeo, chocoMat);
-  chocolateMesh.rotation.x = Math.PI / 2;
-  chocolateMesh.rotation.z = Math.PI;
-  chocolateMesh.position.set(0, 2.55, 0);
+  chocolateMesh.position.set(0, 1.05, 0);
+  chocolateMesh.receiveShadow = true;
   concheGroup.add(chocolateMesh);
 
-  // Superficie plana del chocolate
-  const chocoSurfGeo = new THREE.PlaneGeometry(2.5, 5.8);
+  // Superficie del chocolate
+  const chocoSurfGeo = new THREE.CircleGeometry(1.6, 48);
   const chocoSurf = new THREE.Mesh(chocoSurfGeo, chocoMat);
   chocoSurf.rotation.x = -Math.PI / 2;
-  chocoSurf.position.set(0, 2.55, 0);
+  chocoSurf.position.set(0, 1.3, 0);
   concheGroup.add(chocoSurf);
 
-  // === RODILLOS (3) - AHORA DENTRO DE LA ARTESA ===
-  // ✅ Posición corregida: Y=2.2 (antes 1.95) para estar dentro del chocolate
-  const rollerGeo = new THREE.CylinderGeometry(0.35, 0.35, 5.4, 32);  // Radio más pequeño
-  [-1.2, 0, 1.2].forEach((z, i) => {  // ✅ Más juntos (antes -1.5, 0, 1.5)
-    const roller = new THREE.Mesh(rollerGeo, rollerMat);
-    roller.rotation.x = Math.PI / 2;
-    roller.position.set(0, 2.2, z);  // ✅ Dentro de la artesa
+  // === BRAZO CENTRAL (grupo que orbita) ===
+  const armGroup = new THREE.Group();
+  armGroup.position.set(0, 1.3, 0);
+
+  // Eje central vertical
+  const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.8, 16);
+  const shaft = new THREE.Mesh(shaftGeo, darkSteel);
+  shaft.position.set(0, 0.4, 0);
+  shaft.castShadow = true;
+  armGroup.add(shaft);
+
+  // Cabeza del eje (arriba)
+  const headGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.3, 16);
+  const head = new THREE.Mesh(headGeo, darkSteel);
+  head.position.set(0, 1.3, 0);
+  armGroup.add(head);
+
+  // Brazo horizontal que sostiene los rodillos
+  const armGeo = new THREE.BoxGeometry(2.4, 0.15, 0.2);
+  const arm = new THREE.Mesh(armGeo, darkSteel);
+  arm.position.set(0, 0.8, 0);
+  arm.castShadow = true;
+  armGroup.add(arm);
+
+  // Soportes de los rodillos (2)
+  [-0.9, 0.9].forEach(z => {
+    const supportGeo = new THREE.BoxGeometry(0.15, 0.6, 0.15);
+    const support = new THREE.Mesh(supportGeo, darkSteel);
+    support.position.set(0, 0.5, z);
+    armGroup.add(support);
+
+    // Eje horizontal del rodillo
+    const axleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 12);
+    const axle = new THREE.Mesh(axleGeo, steel);
+    axle.rotation.z = Math.PI / 2;
+    axle.position.set(0, 0.5, z);
+    armGroup.add(axle);
+  });
+
+  // === RODILLOS DE PIEDRA (granito) - 2 ruedas verticales ===
+  const rollerGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 32);
+  [-0.9, 0.9].forEach((z, i) => {
+    const roller = new THREE.Mesh(rollerGeo, granite);
+    // Rodillo vertical: eje Z local = eje de rotación
+    roller.rotation.z = Math.PI / 2;
+    roller.position.set(0, 0.5, z);
     roller.castShadow = true;
-    concheGroup.add(roller);
+    armGroup.add(roller);
     rollers.push(roller);
 
-    // Eje del rodillo (cobre)
-    const axleGeo = new THREE.CylinderGeometry(0.06, 0.06, 6.2, 12);
-    const axle = new THREE.Mesh(axleGeo, copper);
-    axle.rotation.x = Math.PI / 2;
-    axle.position.set(0, 2.2, z);
-    concheGroup.add(axle);
+    // Detalle: anillo en el rodillo (simula textura de piedra)
+    const ringGeo2 = new THREE.TorusGeometry(0.35, 0.02, 8, 32);
+    const ring2 = new THREE.Mesh(ringGeo2, darkSteel);
+    ring2.rotation.z = Math.PI / 2;
+    ring2.position.set(0, 0.5, z);
+    armGroup.add(ring2);
   });
 
-  // === MOTOR ===
-  const motorBodyGeo = new THREE.BoxGeometry(1.2, 1.4, 1.6);
-  const motorBody = new THREE.Mesh(motorBodyGeo, darkSteel);
-  motorBody.position.set(0, 2.0, -4.2);
-  motorBody.castShadow = true;
-  concheGroup.add(motorBody);
+  concheGroup.add(armGroup);
+  // Guardamos referencia al brazo para animarlo
+  concheGroup.userData.armGroup = armGroup;
 
-  const motorCylGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.8, 24);
-  const motorCyl = new THREE.Mesh(motorCylGeo, steel);
-  motorCyl.rotation.x = Math.PI / 2;
-  motorCyl.position.set(0, 2.2, -3.4);
-  concheGroup.add(motorCyl);
+  // === PANEL DE CONTROL (en la base) ===
+  const panelGeo = new THREE.BoxGeometry(0.3, 0.2, 0.1);
+  const panel = new THREE.Mesh(panelGeo, blackMat);
+  panel.position.set(1.5, 0.5, 0);
+  concheGroup.add(panel);
 
-  const indGeo = new THREE.SphereGeometry(0.1, 16, 16);
-  const ind = new THREE.Mesh(indGeo, redMat);
-  ind.position.set(0.4, 2.6, -4.2);
-  concheGroup.add(ind);
-
-  // === CAMPANA DE VENTILACIÓN ===
-  const hoodGeo = new THREE.BoxGeometry(3.5, 0.8, 5);
-  const hoodMat = new THREE.MeshStandardMaterial({ 
-    color: 0x666677, roughness: 0.5, metalness: 0.6, 
-    transparent: true, opacity: 0.4 
+  // Switch
+  const switchGeo = new THREE.BoxGeometry(0.15, 0.1, 0.05);
+  const switchMat = new THREE.MeshStandardMaterial({ 
+    color: 0x00ff00, emissive: 0x004400, emissiveIntensity: 0.3 
   });
-  const hood = new THREE.Mesh(hoodGeo, hoodMat);
-  hood.position.set(0, 4.2, 0);
-  concheGroup.add(hood);
-
-  const ductGeo = new THREE.CylinderGeometry(0.4, 0.5, 2.5, 16);
-  const duct = new THREE.Mesh(ductGeo, steel);
-  duct.position.set(0, 5.8, 0);
-  duct.castShadow = true;
-  concheGroup.add(duct);
-
-  const elbowGeo = new THREE.TorusGeometry(0.5, 0.4, 12, 16, Math.PI / 2);
-  const elbow = new THREE.Mesh(elbowGeo, steel);
-  elbow.position.set(0.5, 7.0, 0);
-  elbow.rotation.z = Math.PI;
-  concheGroup.add(elbow);
-
-  // === PANEL DE CONTROL LATERAL ===
-  const panelGeo = new THREE.BoxGeometry(0.15, 1.2, 0.8);
-  const panelMesh = new THREE.Mesh(panelGeo, darkSteel);
-  panelMesh.position.set(3.2, 2.5, -2);
-  concheGroup.add(panelMesh);
-
-  const screenGeo = new THREE.PlaneGeometry(0.6, 0.4);
-  const screenMat = new THREE.MeshStandardMaterial({ 
-    color: 0x003322, emissive: 0x004433, emissiveIntensity: 0.5 
-  });
-  const screen = new THREE.Mesh(screenGeo, screenMat);
-  screen.position.set(3.28, 2.7, -2);
-  screen.rotation.y = Math.PI / 2;
-  concheGroup.add(screen);
+  const sw = new THREE.Mesh(switchGeo, switchMat);
+  sw.position.set(1.5, 0.5, 0.06);
+  concheGroup.add(sw);
 
   scene.add(concheGroup);
 }
+
 function buildSteam() {
   const steamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
   for (let i = 0; i < 60; i++) {
@@ -484,14 +474,19 @@ function animateThree() {
   requestAnimationFrame(animateThree);
   controls.update();
 
-  // Rotar rodillos sobre su eje longitudinal (eje Y local del cilindro)
   const rpm = S.actSpeed;
-  const rotSpeed = (rpm / 60) * 0.15;
-  const axis = new THREE.Vector3(0, 1, 0);  // eje Y local = eje del cilindro
+  
+  // Rotación orbital del brazo (todo el grupo gira alrededor del eje Y)
+  const armGroup = scene.children[scene.children.length - 1]?.userData?.armGroup;
+  if (armGroup) {
+    const orbitSpeed = (rpm / 60) * 0.3;  // Velocidad de órbita
+    armGroup.rotation.y += orbitSpeed;
+  }
 
+  // Rotación individual de cada rodillo sobre su eje (eje Z local)
+  const rollerSpin = (rpm / 60) * 0.5;
   rollers.forEach((r, i) => {
-    const direction = (i % 2 === 0) ? 1 : -1;
-    r.rotateOnAxis(axis, rotSpeed * direction);
+    r.rotation.x += rollerSpin * (i % 2 === 0 ? 1 : -1);
   });
 
   // Color del chocolate según temperatura
@@ -501,7 +496,6 @@ function animateThree() {
     const g = 0.11 + t * 0.05;
     const b = 0.0;
     chocolateMesh.material.color.setRGB(r, g, b);
-    chocolateMesh.material.roughness = 0.4 - t * 0.2;
   }
 
   // Partículas de vapor
