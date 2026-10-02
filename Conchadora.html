@@ -423,19 +423,24 @@ function animateThree() {
   controls.update();
 
   const rpm = S.actSpeed;
-  const orbitSpeed = (rpm / 60) * 0.5;
-  const spinSpeed = (rpm / 60) * 2.0;
+  
+  // ✅ Velocidades de animación (ajustadas para que se vea el movimiento)
+  const orbitSpeed = (rpm / 60) * 0.8;   // Velocidad de órbita alrededor del centro
+  const spinSpeed = (rpm / 60) * 3.0;    // Velocidad de rotación propia (más rápida)
 
+  // Rotar los grupos de órbita (brazo + rodillo giran alrededor del eje central)
   orbitAngle += orbitSpeed * 0.016;
   rollerGroups.forEach((group, i) => {
     group.rotation.y = orbitAngle + (i * Math.PI);
   });
 
-  const yAxis = new THREE.Vector3(0, 1, 0);
+  // ✅ Rotar cada rodillo sobre su propio eje Y (vertical)
+  // Usamos rotación directa en lugar de rotateOnAxis
   rollerMeshes.forEach(roller => {
-    roller.rotateOnAxis(yAxis, spinSpeed * 0.016);
+    roller.rotation.y += spinSpeed * 0.016;
   });
 
+  // Color del chocolate según temperatura
   if (chocolateMesh) {
     const t = Math.max(0, Math.min(1, (S.actTemp - 25) / 65));
     const r = 0.24 + t * 0.3;
