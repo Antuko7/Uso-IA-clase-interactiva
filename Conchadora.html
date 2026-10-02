@@ -1,842 +1,356 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Conchadora de Chocolate — Panel de Control</title>
-
-<!-- Three.js r128 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-<!-- Chart.js 4 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
-<!-- KaTeX -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-
-<style>
-:root {
-  --bg: #0d1117; --panel: #161b22; --border: #30363d;
-  --text: #c9d1d9; --text-dim: #8b949e; --accent: #d4a843;
-  --choco: #8B4513; --copper: #cd7f32; --ok: #3fb950;
-  --warn: #d29922; --err: #f85149; --blue: #58a6ff;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
-h1,h2,h3 { color:var(--accent); }
-
-.header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px;
-  background:var(--panel); border-bottom:2px solid var(--accent); flex-wrap:wrap; gap:8px; }
-.header h1 { font-size:1.2rem; display:flex; align-items:center; gap:8px; }
-.header h1 span.icon { font-size:1.5rem; }
-.conn-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.conn-bar input { background:#0d1117; border:1px solid var(--border); color:var(--text);
-  padding:5px 10px; border-radius:6px; width:140px; font-size:.85rem; }
-.conn-bar button { padding:5px 14px; border:none; border-radius:6px; cursor:pointer;
-  font-weight:600; font-size:.85rem; transition:.2s; }
-.btn-connect { background:var(--ok); color:#000; }
-.btn-connect:hover { filter:brightness(1.2); }
-.btn-disconnect { background:var(--err); color:#fff; }
-.btn-sim { background:var(--warn); color:#000; }
-.status-dot { width:12px; height:12px; border-radius:50%; display:inline-block; }
-.status-dot.ok { background:var(--ok); box-shadow:0 0 6px var(--ok); }
-.status-dot.off { background:var(--err); box-shadow:0 0 6px var(--err); }
-.status-dot.sim { background:var(--warn); box-shadow:0 0 6px var(--warn); }
-
-.dashboard { display:grid; grid-template-columns:1fr 380px; grid-template-rows:auto auto auto;
-  gap:12px; padding:12px; max-width:1600px; margin:0 auto; }
-.panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; }
-.panel h2 { font-size:1rem; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
-
-.viewport { grid-row:1/3; min-height:480px; position:relative; }
-#three-canvas { width:100%; height:100%; border-radius:8px; display:block; }
-.viewport-overlay { position:absolute; bottom:10px; left:10px; background:rgba(0,0,0,.65);
-  padding:6px 12px; border-radius:6px; font-size:.75rem; color:var(--text-dim); pointer-events:none; }
-
-.controls { display:flex; flex-direction:column; gap:10px; }
-.slider-group { display:flex; flex-direction:column; gap:4px; }
-.slider-group label { font-size:.85rem; display:flex; justify-content:space-between; }
-.slider-group label b { color:var(--accent); }
-.slider-group small { font-size:.7rem; color:var(--text-dim); }
-input[type=range] { -webkit-appearance:none; width:100%; height:6px; border-radius:3px;
-  background:var(--border); outline:none; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px;
-  border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid #000; }
-.joystick-display { background:#0d1117; border:1px solid var(--border); border-radius:8px;
-  padding:10px; text-align:center; }
-.joystick-display .val { font-size:1.8rem; font-weight:700; color:var(--accent); }
-.joystick-display .lbl { font-size:.75rem; color:var(--text-dim); }
-.param-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.param-card { background:#0d1117; border:1px solid var(--border); border-radius:8px;
-  padding:8px; text-align:center; }
-.param-card .val { font-size:1.3rem; font-weight:700; }
-.param-card .lbl { font-size:.7rem; color:var(--text-dim); }
-.param-card.temp .val { color:#f78166; }
-.param-card.hum .val { color:var(--blue); }
-.param-card.speed .val { color:var(--accent); }
-.param-card.vent .val { color:var(--ok); }
-.param-card.visc .val { color:var(--copper); }
-
-.charts-area { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
-.chart-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px; }
-.chart-box h3 { font-size:.85rem; margin-bottom:6px; }
-.chart-box canvas { width:100%!important; height:180px!important; }
-
-.equations { grid-column:1/-1; }
-.eq-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
-.eq-card { background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:12px; }
-.eq-card h3 { font-size:.85rem; margin-bottom:6px; color:var(--copper); }
-.eq-card .katex-display { margin:6px 0; }
-.eq-card p { font-size:.78rem; color:var(--text-dim); margin-top:4px; }
-
-.esp-toggle { background:var(--border); color:var(--text); border:none; padding:6px 14px;
-  border-radius:6px; cursor:pointer; font-size:.8rem; margin-top:8px; }
-.esp-code { display:none; background:#0d1117; border:1px solid var(--border); border-radius:8px;
-  padding:12px; margin-top:8px; max-height:400px; overflow:auto; }
-.esp-code pre { font-size:.72rem; color:var(--ok); white-space:pre-wrap; word-break:break-all; }
-.esp-code.show { display:block; }
-
-@media(max-width:900px){
-  .dashboard { grid-template-columns:1fr; }
-  .viewport { grid-row:auto; min-height:350px; }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Conchadora Premier SS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <style>
+        body { background-color: #1a202c; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
+        #canvas-container { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; }
+        input[type=range] { accent-color: #d97706; }
+    </style>
 </head>
-<body>
+<body class="p-4 md:p-8">
 
-<div class="header">
-  <h1><span class="icon"></span> Conchadora de Chocolate — Panel de Control</h1>
-  <div class="conn-bar">
-    <span class="status-dot off" id="statusDot"></span>
-    <span id="statusText" style="font-size:.8rem">Desconectado</span>
-    <input id="espIp" type="text" value="192.168.43.100" placeholder="IP del ESP32">
-    <button class="btn-connect" id="btnConn" onclick="toggleConnection()">Conectar</button>
-    <button class="btn-sim" onclick="toggleSim()">⚡ Simulación</button>
-  </div>
-</div>
+    <header class="mb-6 text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-amber-500">🍫 Control de Conchadora Premier SS</h1>
+        <p class="text-gray-400 mt-2">Sistema de telemetría y control en tiempo real para industria alimentaria</p>
+    </header>
 
-<div class="dashboard">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Panel Izquierdo: Visualización 3D y Conexión -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="glass-panel p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-amber-400">Visualización 3D en Tiempo Real</h2>
+                    <div class="flex gap-2">
+                        <input type="text" id="esp32-ip" value="192.168.1.100" placeholder="IP del ESP32" class="bg-gray-700 text-white px-3 py-1 rounded text-sm w-40">
+                        <button onclick="connectWS()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1 rounded text-sm font-bold">Conectar</button>
+                    </div>
+                </div>
+                <div id="canvas-container" class="bg-gray-900 border border-gray-700"></div>
+                <div class="flex justify-around mt-4 text-sm">
+                    <div class="text-center"><span class="block text-gray-400">RPM Actuales</span><span id="disp-rpm" class="text-2xl font-bold text-amber-500">0</span></div>
+                    <div class="text-center"><span class="block text-gray-400">Temperatura</span><span id="disp-temp" class="text-2xl font-bold text-red-400">--</span></div>
+                    <div class="text-center"><span class="block text-gray-400">Humedad</span><span id="disp-hum" class="text-2xl font-bold text-blue-400">--</span></div>
+                </div>
+            </div>
 
-  <div class="panel viewport">
-    <h2>🔩 Modelo 3D — Conchadora tipo Wet Grinder</h2>
-    <canvas id="three-canvas"></canvas>
-    <div class="viewport-overlay">🖱️ Arrastra para rotar · Scroll para zoom</div>
-  </div>
+            <!-- Gráficos en Tiempo Real -->
+            <div class="glass-panel p-4">
+                <h2 class="text-xl font-semibold text-amber-400 mb-4">Evolución del Proceso</h2>
+                <canvas id="telemetryChart" height="120"></canvas>
+            </div>
+        </div>
 
-  <div class="panel controls">
-    <h2>🎛️ Parámetros de Proceso</h2>
+        <!-- Panel Derecho: Controles y Fórmulas -->
+        <div class="space-y-6">
+            <!-- Controles -->
+            <div class="glass-panel p-6">
+                <h2 class="text-xl font-semibold text-amber-400 mb-6">Parámetros de Conchado</h2>
+                
+                <div class="mb-6">
+                    <label class="flex justify-between text-sm font-medium mb-2">
+                        <span>Temperatura Objetivo (°C)</span>
+                        <span id="val-temp" class="text-amber-400">60</span>
+                    </label>
+                    <input type="range" id="slider-temp" min="30" max="85" value="60" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="updateParam('temperature', this.value)">
+                </div>
 
-    <div class="slider-group">
-      <label>️ Temperatura objetivo <b id="tempVal">60 °C</b></label>
-      <input type="range" id="sliderTemp" min="40" max="90" value="60" oninput="onSlider()">
+                <div class="mb-6">
+                    <label class="flex justify-between text-sm font-medium mb-2">
+                        <span>Flujo de Ventilación (%)</span>
+                        <span id="val-vent" class="text-amber-400">50</span>
+                    </label>
+                    <input type="range" id="slider-vent" min="0" max="100" value="50" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="updateParam('ventilation', this.value)">
+                </div>
+
+                <div class="mb-6">
+                    <label class="flex justify-between text-sm font-medium mb-2">
+                        <span>Tiempo de Conchado (min)</span>
+                        <span id="val-time" class="text-amber-400">120</span>
+                    </label>
+                    <input type="range" id="slider-time" min="15" max="480" value="120" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="document.getElementById('val-time').innerText = this.value">
+                </div>
+
+                <div class="mb-4">
+                    <label class="flex justify-between text-sm font-medium mb-2">
+                        <span>Velocidad Motor Web (%)</span>
+                        <span id="val-motor" class="text-amber-400">Auto (Joystick)</span>
+                    </label>
+                    <input type="range" id="slider-motor" min="-1" max="100" value="-1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer" oninput="updateMotor(this.value)">
+                    <p class="text-xs text-gray-500 mt-1">-1 = Control por Joystick físico ESP32</p>
+                </div>
+            </div>
+
+            <!-- Fórmulas de Ingeniería (KaTeX) -->
+            <div class="glass-panel p-6">
+                <h2 class="text-xl font-semibold text-amber-400 mb-4">Fundamentos del Proceso</h2>
+                <div class="space-y-4 text-sm text-gray-300">
+                    <div>
+                        <p class="font-semibold text-white mb-1">1. Tasa de Cizalla (Shear Rate)</p>
+                        <div id="formula-shear"></div>
+                        <p class="text-xs text-gray-500 mt-1">Donde \(v\) es la velocidad tangencial del rodillo y \(h\) es la holgura de la placa.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-white mb-1">2. Reducción de Humedad y Ácidos Volátiles</p>
+                        <div id="formula-moisture"></div>
+                        <p class="text-xs text-gray-500 mt-1">Modelo exponencial de evaporación durante el conchado en fase seca/húmeda.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-white mb-1">3. Potencia Mecánica Aproximada</p>
+                        <div id="formula-power"></div>
+                        <p class="text-xs text-gray-500 mt-1">Dependiente de la viscosidad aparente (\(\mu\)) de la masa de chocolate.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="slider-group">
-      <label>⏱️ Tiempo de conchado <b id="timeVal">48 h</b></label>
-      <input type="range" id="sliderTime" min="1" max="96" value="48" oninput="onSlider()">
-    </div>
-    <div class="slider-group">
-      <label>💨 Flujo de ventilación <b id="ventVal">50 %</b></label>
-      <input type="range" id="sliderVent" min="0" max="100" value="50" oninput="onSlider()">
-    </div>
-    <div class="slider-group">
-      <label>⚙️ Control manual del motor <b id="motorVal">0 %</b></label>
-      <input type="range" id="sliderMotor" min="0" max="100" value="0" oninput="onSlider()">
-      <small>Desliza para controlar el motor desde la web (anula el joystick)</small>
-    </div>
 
-    <h2 style="margin-top:8px">🕹️ Joystick ESP32</h2>
-    <div class="joystick-display">
-      <div class="val" id="joystickRPM">0</div>
-      <div class="lbl">RPM Motor (joystick Y / control manual)</div>
-      <div style="font-size:.7rem;color:var(--text-dim);margin-top:4px">Zona muerta: ±200 (centro)</div>
-    </div>
-    <div class="param-grid" style="margin-top:6px">
-      <div class="param-card temp"><div class="val" id="pTemp">25.0</div><div class="lbl">Temp. DHT22 (°C)</div></div>
-      <div class="param-card hum"><div class="val" id="pHum">50.0</div><div class="lbl">Humedad DHT22 (%)</div></div>
-      <div class="param-card speed"><div class="val" id="pSpeed">0</div><div class="lbl">Motor (RPM)</div></div>
-      <div class="param-card vent"><div class="val" id="pVent">50</div><div class="lbl">Ventilación (%)</div></div>
-    </div>
-
-    <button class="esp-toggle" onclick="document.getElementById('espCode').classList.toggle('show')">
-      📟 Ver código ESP32 (Arduino)
-    </button>
-    <div class="esp-code" id="espCode">
-      <pre id="espPre"></pre>
-    </div>
-  </div>
-
-  <div class="charts-area">
-    <div class="chart-box"><h3>🌡️ Temperatura DHT22 (°C)</h3><canvas id="chartTemp"></canvas></div>
-    <div class="chart-box"><h3> Humedad DHT22 (%)</h3><canvas id="chartHum"></canvas></div>
-    <div class="chart-box"><h3>️ Velocidad Motor (RPM)</h3><canvas id="chartSpeed"></canvas></div>
-    <div class="chart-box"><h3> Ventilación (%)</h3><canvas id="chartVent"></canvas></div>
-    <div class="chart-box"><h3>🧪 Viscosidad (Pa·s)</h3><canvas id="chartVisc"></canvas></div>
-  </div>
-
-  <div class="panel equations">
-    <h2>📐 Ecuaciones del Proceso de Conchado</h2>
-    <div class="eq-grid" id="eqGrid"></div>
-  </div>
-</div>
-
-<script>
-// ================================================================
-//  CONFIGURACIÓN GLOBAL
-// ================================================================
-const CFG = {
-  MAX_POINTS: 120,
-  UPDATE_MS: 1000,
-  WS_PORT: 81,
-  A_ARRHENIUS: 1.2e-4,
-  EA: 35000,
-  R_GAS: 8.314,
-  MOISTURE_INIT: 1.5,
-  KD: 0.008,
-  JOYSTICK_CENTER: 2048,
-  JOYSTICK_DEADZONE: 200,
-  MAX_RPM: 30
-};
-
-// ================================================================
-//  ESTADO
-// ================================================================
-const S = {
-  connected: false, simulating: true, ws: null,
-  setTemp: 60, setTime: 48, setVent: 50, setMotor: 0,
-  actTemp: 25, actHum: 50, actSpeed: 0, actVent: 50, actVisc: 0,
-  joystickX: 2048, joystickY: 2048,
-  elapsed: 0, moisture: CFG.MOISTURE_INIT
-};
-
-// ================================================================
-//  THREE.JS — ESCENA 3D
-// ================================================================
-let scene, camera, renderer, controls;
-let rollerGroups = [];   // grupos que orbitan (brazo + rodillo)
-let rollerMeshes = [];   // solo los rodillos (para rotación propia)
-let chocolateMesh;
-let orbitAngle = 0;
-
-function initThree() {
-  const canvas = document.getElementById('three-canvas');
-  const container = canvas.parentElement;
-
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a1a2e);
-
-  camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
-  camera.position.set(5, 6, 7);
-
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.3;
-
-  controls = new THREE.OrbitControls(camera, canvas);
-  controls.enableDamping = true;
-  controls.target.set(0, 2, 0);
-
-  // Luces
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1.0);
-  dir.position.set(5, 10, 5);
-  dir.castShadow = true;
-  dir.shadow.mapSize.set(1024, 1024);
-  scene.add(dir);
-  const pt = new THREE.PointLight(0xffeedd, 0.5, 15);
-  pt.position.set(-3, 4, 3);
-  scene.add(pt);
-
-  // Suelo
-  const floorGeo = new THREE.PlaneGeometry(30, 30);
-  const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.9 });
-  const floor = new THREE.Mesh(floorGeo, floorMat);
-  floor.rotation.x = -Math.PI / 2;
-  floor.receiveShadow = true;
-  scene.add(floor);
-  scene.add(new THREE.GridHelper(30, 30, 0x30363d, 0x1a1a2e));
-
-  buildConche();
-
-  window.addEventListener('resize', () => {
-    camera.aspect = container.clientWidth / container.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(container.clientWidth, container.clientHeight);
-  });
-}
-
-function buildConche() {
-  // === MATERIALES ===
-  const steelMat = new THREE.MeshStandardMaterial({ 
-    color: 0xdddddd, roughness: 0.15, metalness: 0.95 
-  });
-  const darkSteelMat = new THREE.MeshStandardMaterial({ 
-    color: 0x666677, roughness: 0.4, metalness: 0.8 
-  });
-  const redMat = new THREE.MeshStandardMaterial({ 
-    color: 0xcc2222, roughness: 0.4, metalness: 0.3 
-  });
-  const graniteMat = new THREE.MeshStandardMaterial({ 
-    color: 0x888888, roughness: 0.85, metalness: 0.05 
-  });
-  const chocoMat = new THREE.MeshStandardMaterial({ 
-    color: 0x3E1C00, roughness: 0.3, metalness: 0.1 
-  });
-  const glassMat = new THREE.MeshStandardMaterial({ 
-    color: 0xaaccff, roughness: 0.1, metalness: 0.1, 
-    transparent: true, opacity: 0.25 
-  });
-  const blackMat = new THREE.MeshStandardMaterial({ 
-    color: 0x111111, roughness: 0.8, metalness: 0.2 
-  });
-
-  const machine = new THREE.Group();
-
-  // === BASE (parte roja inferior) ===
-  const baseGeo = new THREE.CylinderGeometry(1.8, 1.9, 0.6, 32);
-  const base = new THREE.Mesh(baseGeo, redMat);
-  base.position.y = 0.3;
-  base.castShadow = true;
-  base.receiveShadow = true;
-  machine.add(base);
-
-  // Borde inferior de la base
-  const baseRimGeo = new THREE.TorusGeometry(1.9, 0.05, 8, 32);
-  const baseRim = new THREE.Mesh(baseRimGeo, darkSteelMat);
-  baseRim.rotation.x = Math.PI / 2;
-  baseRim.position.y = 0.05;
-  machine.add(baseRim);
-
-  // Borde superior de la base (unión con el tambor)
-  const baseTopRimGeo = new THREE.TorusGeometry(1.8, 0.05, 8, 32);
-  const baseTopRim = new THREE.Mesh(baseTopRimGeo, darkSteelMat);
-  baseTopRim.rotation.x = Math.PI / 2;
-  baseTopRim.position.y = 0.6;
-  machine.add(baseTopRim);
-
-  // Switch ON/OFF en la base
-  const switchPlateGeo = new THREE.BoxGeometry(0.4, 0.25, 0.08);
-  const switchPlate = new THREE.Mesh(switchPlateGeo, blackMat);
-  switchPlate.position.set(0, 0.35, 1.85);
-  machine.add(switchPlate);
-
-  const switchBtnGeo = new THREE.BoxGeometry(0.15, 0.12, 0.05);
-  const switchBtn = new THREE.Mesh(switchBtnGeo, new THREE.MeshStandardMaterial({ color: 0x222222 }));
-  switchBtn.position.set(0, 0.35, 1.9);
-  machine.add(switchBtn);
-
-  // Etiqueta "Premier"
-  const labelGeo = new THREE.PlaneGeometry(0.6, 0.15);
-  const labelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x333333 });
-  const label = new THREE.Mesh(labelGeo, labelMat);
-  label.position.set(0, 0.2, 1.86);
-  machine.add(label);
-
-  // === ASAS ROJAS LATERALES ===
-  const handleGeo = new THREE.TorusGeometry(0.2, 0.06, 8, 16, Math.PI);
-  [-1, 1].forEach(side => {
-    const handle = new THREE.Mesh(handleGeo, redMat);
-    handle.position.set(side * 1.9, 0.4, 0);
-    handle.rotation.y = Math.PI / 2 * side;
-    handle.rotation.z = Math.PI / 2;
-    machine.add(handle);
-  });
-
-  // === TAMBOR DE ACERO INOXIDABLE ===
-  const drumGeo = new THREE.CylinderGeometry(1.7, 1.7, 2.2, 32, 1, true);
-  const drum = new THREE.Mesh(drumGeo, steelMat);
-  drum.position.y = 1.7;
-  drum.castShadow = true;
-  machine.add(drum);
-
-  // Borde superior del tambor
-  const drumRimGeo = new THREE.TorusGeometry(1.7, 0.06, 8, 32);
-  const drumRim = new THREE.Mesh(drumRimGeo, darkSteelMat);
-  drumRim.rotation.x = Math.PI / 2;
-  drumRim.position.y = 2.8;
-  machine.add(drumRim);
-
-  // Borde inferior del tambor
-  const drumRimBot = drumRim.clone();
-  drumRimBot.position.y = 0.6;
-  machine.add(drumRimBot);
-
-  // === CHOCOLATE (dentro del tambor) ===
-  const chocoGeo = new THREE.CylinderGeometry(1.55, 1.55, 1.0, 32);
-  chocolateMesh = new THREE.Mesh(chocoGeo, chocoMat);
-  chocolateMesh.position.y = 1.1;
-  machine.add(chocolateMesh);
-
-  // Superficie del chocolate
-  const chocoTopGeo = new THREE.CircleGeometry(1.55, 32);
-  const chocoTop = new THREE.Mesh(chocoTopGeo, chocoMat);
-  chocoTop.rotation.x = -Math.PI / 2;
-  chocoTop.position.y = 1.6;
-  machine.add(chocoTop);
-
-  // === EJE CENTRAL ===
-  const shaftGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.0, 16);
-  const shaft = new THREE.Mesh(shaftGeo, darkSteelMat);
-  shaft.position.y = 2.0;
-  shaft.castShadow = true;
-  machine.add(shaft);
-
-  // Parte superior del eje (cabezal)
-  const headGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.3, 16);
-  const head = new THREE.Mesh(headGeo, darkSteelMat);
-  head.position.y = 3.0;
-  machine.add(head);
-
-  // Manija superior del eje
-  const handleTopGeo = new THREE.BoxGeometry(0.6, 0.08, 0.08);
-  const handleTop = new THREE.Mesh(handleTopGeo, darkSteelMat);
-  handleTop.position.y = 3.15;
-  machine.add(handleTop);
-
-  // === BRAZOS Y RODILLOS DE GRANITO ===
-  // Cada rodillo está en un grupo que orbita alrededor del eje central
-  const rollerRadius = 0.35;
-  const rollerHeight = 1.2;
-  const orbitRadius = 0.9;  // distancia del centro al rodillo
-
-  for (let i = 0; i < 2; i++) {
-    const angle = (i * Math.PI);  // 0 y 180 grados (opuestos)
-    
-    // Grupo que orbita
-    const orbitGroup = new THREE.Group();
-    orbitGroup.position.y = 1.6;  // altura del centro del rodillo
-    
-    // Brazo que conecta el eje al rodillo
-    const armGeo = new THREE.BoxGeometry(orbitRadius, 0.15, 0.15);
-    const arm = new THREE.Mesh(armGeo, darkSteelMat);
-    arm.position.x = orbitRadius / 2;
-    arm.castShadow = true;
-    orbitGroup.add(arm);
-
-    // Rodillo de granito (cilindro vertical)
-    const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerHeight, 24);
-    const roller = new THREE.Mesh(rollerGeo, graniteMat);
-    roller.position.x = orbitRadius;
-    roller.castShadow = true;
-    orbitGroup.add(roller);
-    rollerMeshes.push(roller);
-
-    // Eje pequeño del rodillo
-    const axleGeo = new THREE.CylinderGeometry(0.05, 0.05, rollerHeight + 0.3, 8);
-    const axle = new THREE.Mesh(axleGeo, darkSteelMat);
-    axle.position.x = orbitRadius;
-    orbitGroup.add(axle);
-
-    // Posicionar el grupo en su ángulo inicial
-    orbitGroup.rotation.y = angle;
-    machine.add(orbitGroup);
-    rollerGroups.push(orbitGroup);
-  }
-
-  // === TAPA TRANSPARENTES ===
-  const lidGeo = new THREE.CylinderGeometry(1.75, 1.75, 0.15, 32);
-  const lid = new THREE.Mesh(lidGeo, glassMat);
-  lid.position.y = 2.85;
-  machine.add(lid);
-
-  // Asa de la tapa
-  const lidHandleGeo = new THREE.BoxGeometry(0.5, 0.1, 0.15);
-  const lidHandle = new THREE.Mesh(lidHandleGeo, darkSteelMat);
-  lidHandle.position.y = 2.95;
-  machine.add(lidHandle);
-
-  scene.add(machine);
-}
-
-function animateThree() {
-  requestAnimationFrame(animateThree);
-  controls.update();
-
-  // Animación de los rodillos
-  const rpm = S.actSpeed;
-  const orbitSpeed = (rpm / 60) * 0.5;     // velocidad de órbita
-  const spinSpeed = (rpm / 60) * 2.0;      // velocidad de rotación propia (más rápida)
-
-  // Rotar los grupos de órbita (brazo + rodillo giran alrededor del eje central)
-  orbitAngle += orbitSpeed * 0.016;  // ~60fps
-  rollerGroups.forEach((group, i) => {
-    group.rotation.y = orbitAngle + (i * Math.PI);
-  });
-
-  // Rotar cada rodillo sobre su propio eje vertical
-  rollerMeshes.forEach(roller => {
-    roller.rotation.y += spinSpeed * 0.016;
-  });
-
-  // Color del chocolate según temperatura
-  if (chocolateMesh) {
-    const t = Math.max(0, Math.min(1, (S.actTemp - 25) / 65));
-    const r = 0.24 + t * 0.3;
-    const g = 0.11 + t * 0.05;
-    const b = 0.0;
-    chocolateMesh.material.color.setRGB(r, g, b);
-    chocolateMesh.material.roughness = 0.4 - t * 0.2;
-  }
-
-  renderer.render(scene, camera);
-}
-
-// ================================================================
-//  CHART.JS
-// ================================================================
-let charts = {};
-
-function initCharts() {
-  Chart.defaults.color = '#8b949e';
-  Chart.defaults.borderColor = '#30363d';
-  Chart.defaults.font.size = 11;
-
-  const opts = () => ({
-    responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
-    scales: {
-      x: { display: true, grid: { color: '#21262d' }, ticks: { maxTicksLimit: 8 } },
-      y: { grid: { color: '#21262d' } }
-    },
-    plugins: { legend: { display: false } },
-    elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
-  });
-
-  const makeChart = (id, label, color) => {
-    const ctx = document.getElementById(id).getContext('2d');
-    return new Chart(ctx, {
-      type: 'line',
-      data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: color + '22', fill: true }] },
-      options: opts()
-    });
-  };
-
-  charts.temp = makeChart('chartTemp', 'Temperatura DHT22', '#f78166');
-  charts.hum = makeChart('chartHum', 'Humedad DHT22', '#58a6ff');
-  charts.speed = makeChart('chartSpeed', 'Motor RPM', '#d4a843');
-  charts.vent = makeChart('chartVent', 'Ventilación', '#3fb950');
-  charts.visc = makeChart('chartVisc', 'Viscosidad', '#cd7f32');
-}
-
-function pushChart(chart, label, value) {
-  chart.data.labels.push(label);
-  chart.data.datasets[0].data.push(value);
-  if (chart.data.labels.length > CFG.MAX_POINTS) {
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
-  }
-  chart.update('none');
-}
-
-// ================================================================
-//  KATEX
-// ================================================================
-function renderEquations() {
-  const eqs = [
-    { title: 'Modelo de Viscosidad (Arrhenius)',
-      tex: '\\eta(T) = A \\cdot \\exp\\!\\left(\\frac{E_a}{R \\cdot T}\\right)',
-      desc: 'A = factor pre-exponencial, Eₐ = energía de activación, R = constante de los gases, T = temperatura absoluta (K).' },
-    { title: 'Balance de Energía',
-      tex: '\\dot{Q}_{total} = \\dot{Q}_{fricci\\acute{o}n} + \\dot{Q}_{externo} - \\dot{Q}_{evap} - \\dot{Q}_{p\\acute{e}rdida}',
-      desc: 'La energía total incluye fricción de rodillos, calentamiento externo, evaporación y pérdidas.' },
-    { title: 'Tasa de Evaporación',
-      tex: '\\frac{dm_w}{dt} = k \\cdot A_s \\cdot \\bigl(p_{sat}(T) - p_{amb}\\bigr)',
-      desc: 'k = coef. transferencia de masa, Aₛ = área superficial, p_sat = presión vapor saturado.' },
-    { title: 'Tasa de Cizalladura',
-      tex: '\\dot{\\gamma} = \\frac{v_{rodillo}}{h_{gap}}',
-      desc: 'v = velocidad tangencial del rodillo, h_gap = separación rodillo-tambor.' },
-    { title: 'Potencia de Conchado',
-      tex: 'P = \\eta \\cdot \\dot{\\gamma}^2 \\cdot V',
-      desc: 'η = viscosidad aparente, γ̇ = tasa de cizalladura, V = volumen de masa activa.' },
-    { title: 'Decaimiento de Humedad',
-      tex: 'X(t) = X_0 \\cdot \\exp(-k_d \\cdot t)',
-      desc: 'X₀ = humedad inicial, k_d = constante de secado, t = tiempo de conchado.' }
-  ];
-
-  const grid = document.getElementById('eqGrid');
-  eqs.forEach(eq => {
-    const card = document.createElement('div');
-    card.className = 'eq-card';
-    card.innerHTML = `<h3>${eq.title}</h3><div class="eq-tex"></div><p>${eq.desc}</p>`;
-    grid.appendChild(card);
-    katex.render(eq.tex, card.querySelector('.eq-tex'), { displayMode: true, throwOnError: false });
-  });
-}
-
-// ================================================================
-//  WEBSOCKET
-// ================================================================
-function toggleConnection() {
-  if (S.connected) { disconnect(); } else { connect(); }
-}
-
-function connect() {
-  const ip = document.getElementById('espIp').value.trim();
-  if (!ip) return;
-  setStatus('connecting');
-  try {
-    S.ws = new WebSocket(`ws://${ip}:${CFG.WS_PORT}`);
-    S.ws.onopen = () => { S.connected = true; S.simulating = false; setStatus('ok'); };
-    S.ws.onmessage = (evt) => {
-      try {
-        const d = JSON.parse(evt.data);
-        if (d.joystick_y !== undefined) S.joystickY = d.joystick_y;
-        if (d.joystick_x !== undefined) S.joystickX = d.joystick_x;
-        if (d.temp_dht !== undefined) S.actTemp = d.temp_dht;
-        if (d.humedad_dht !== undefined) S.actHum = d.humedad_dht;
-        if (d.motor_rpm !== undefined) S.actSpeed = d.motor_rpm;
-      } catch(e) { console.error(e); }
-    };
-    S.ws.onclose = () => { S.connected = false; setStatus('off'); };
-    S.ws.onerror = () => { S.connected = false; setStatus('off'); };
-  } catch(e) { setStatus('off'); }
-}
-
-function disconnect() {
-  if (S.ws) { S.ws.close(); S.ws = null; }
-  S.connected = false;
-  setStatus('off');
-}
-
-function sendToESP32(data) {
-  if (S.connected && S.ws && S.ws.readyState === WebSocket.OPEN) {
-    S.ws.send(JSON.stringify(data));
-  }
-}
-
-function setStatus(state) {
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  const btn = document.getElementById('btnConn');
-  dot.className = 'status-dot';
-  if (state === 'ok') { dot.classList.add('ok'); txt.textContent = 'Conectado'; btn.textContent = 'Desconectar'; btn.className = 'btn-disconnect'; }
-  else if (state === 'connecting') { dot.classList.add('sim'); txt.textContent = 'Conectando...'; }
-  else { dot.classList.add('off'); txt.textContent = S.simulating ? 'Simulación' : 'Desconectado'; btn.textContent = 'Conectar'; btn.className = 'btn-connect'; }
-  if (S.simulating) { dot.className = 'status-dot sim'; txt.textContent = 'Simulación activa'; }
-}
-
-// ================================================================
-//  SIMULACIÓN
-// ================================================================
-function toggleSim() {
-  S.simulating = !S.simulating;
-  if (S.simulating) { disconnect(); setStatus('sim'); }
-  else { setStatus('off'); }
-}
-
-function simulateStep() {
-  if (!S.simulating) return;
-  const t = Date.now() * 0.001;
-  const baseValue = CFG.JOYSTICK_CENTER;
-  const oscillation = Math.sin(t * 0.3) * 1500 + Math.sin(t * 0.7) * 400;
-  S.joystickY = baseValue + oscillation;
-  S.joystickX = baseValue + Math.cos(t * 0.2) * 500;
-
-  const joyDiff = S.joystickY - CFG.JOYSTICK_CENTER;
-  let targetRPM = 0;
-  if (Math.abs(joyDiff) > CFG.JOYSTICK_DEADZONE) {
-    const adjustedValue = Math.abs(joyDiff) - CFG.JOYSTICK_DEADZONE;
-    const maxAdjusted = 2048 - CFG.JOYSTICK_DEADZONE;
-    targetRPM = (adjustedValue / maxAdjusted) * CFG.MAX_RPM;
-  }
-  S.actSpeed += (targetRPM - S.actSpeed) * 0.1;
-
-  const tau = 30;
-  S.actTemp += ((S.setTemp - S.actTemp) / tau) + (Math.random() - 0.5) * 0.3;
-  const humTarget = 65 - (S.actVent * 0.3) - ((S.actTemp - 40) * 0.2);
-  S.actHum += ((humTarget - S.actHum) * 0.05) + (Math.random() - 0.5) * 0.5;
-  S.actHum = Math.max(20, Math.min(90, S.actHum));
-  S.actVent += (S.setVent - S.actVent) * 0.15;
-
-  const kd = CFG.KD * (S.actVent / 50) * Math.exp(0.03 * (S.actTemp - 50));
-  S.moisture = CFG.MOISTURE_INIT * Math.exp(-kd * S.elapsed);
-
-  const T_K = S.actTemp + 273.15;
-  S.actVisc = CFG.A_ARRHENIUS * Math.exp(CFG.EA / (CFG.R_GAS * T_K));
-  S.actVisc *= (1 + 0.5 * S.moisture);
-  if (S.actSpeed > 5) S.actVisc *= Math.pow(S.actSpeed / 60, -0.3);
-  S.actVisc = Math.max(0.1, Math.min(50, S.actVisc));
-}
-
-// ================================================================
-//  CONTROLES
-// ================================================================
-function onSlider() {
-  S.setTemp = +document.getElementById('sliderTemp').value;
-  S.setTime = +document.getElementById('sliderTime').value;
-  S.setVent = +document.getElementById('sliderVent').value;
-  S.setMotor = +document.getElementById('sliderMotor').value;
-
-  document.getElementById('tempVal').textContent = S.setTemp + ' °C';
-  document.getElementById('timeVal').textContent = S.setTime + ' h';
-  document.getElementById('ventVal').textContent = S.setVent + ' %';
-  document.getElementById('motorVal').textContent = S.setMotor + ' %';
-
-  sendToESP32({ 
-    temperature: S.setTemp, time: S.setTime, 
-    ventilation: S.setVent, motor_speed: S.setMotor
-  });
-}
-
-// ================================================================
-//  BUCLE PRINCIPAL
-// ================================================================
-function dataLoop() {
-  setInterval(() => {
-    S.elapsed++;
-    if (S.simulating) simulateStep();
-    if (S.connected) {
-      const T_K = S.actTemp + 273.15;
-      S.actVisc = CFG.A_ARRHENIUS * Math.exp(CFG.EA / (CFG.R_GAS * T_K));
-      S.actVent += (S.setVent - S.actVent) * 0.15;
-    }
-
-    document.getElementById('joystickRPM').textContent = Math.round(S.actSpeed);
-    document.getElementById('pTemp').textContent = S.actTemp.toFixed(1);
-    document.getElementById('pHum').textContent = S.actHum.toFixed(1);
-    document.getElementById('pSpeed').textContent = Math.round(S.actSpeed);
-    document.getElementById('pVent').textContent = Math.round(S.actVent);
-    document.getElementById('pVisc').textContent = S.actVisc.toFixed(2);
-
-    const lbl = S.elapsed + 's';
-    pushChart(charts.temp, lbl, +S.actTemp.toFixed(1));
-    pushChart(charts.hum, lbl, +S.actHum.toFixed(1));
-    pushChart(charts.speed, lbl, Math.round(S.actSpeed));
-    pushChart(charts.vent, lbl, Math.round(S.actVent));
-    pushChart(charts.visc, lbl, +S.actVisc.toFixed(2));
-  }, CFG.UPDATE_MS);
-}
-
-// ================================================================
-//  CÓDIGO ESP32
-// ================================================================
-const ESP32_CODE = `// ============================================
-// ESP32 — Conchadora tipo Wet Grinder con DHT22
-// Bibliotecas: WebSocketsServer, ArduinoJson, DHT
-// ============================================
-#include <WiFi.h>
-#include <WebSocketsServer.h>
-#include <ArduinoJson.h>
-#include <DHT.h>
-
-const char* ssid     = "TU_HOTSPOT_CELULAR";
-const char* password = "TU_PASSWORD";
-
-WebSocketsServer ws(81);
-DHT dht(4, DHT22);
-
-#define JOY_X  34
-#define JOY_Y  35
-#define MOTOR_PIN 27
-#define MOTOR_DIR 26
-
-#define JOYSTICK_CENTER 2048
-#define JOYSTICK_DEADZONE 200
-#define MAX_RPM 30
-
-float setTemp = 60, setVent = 50;
-int motorSpeedWeb = -1;
-
-void setup() {
-  Serial.begin(115200);
-  pinMode(MOTOR_PIN, OUTPUT);
-  pinMode(MOTOR_DIR, OUTPUT);
-  digitalWrite(MOTOR_DIR, HIGH);
-  ledcAttach(MOTOR_PIN, 5000, 8);
-  dht.begin();
-  
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500); Serial.print(".");
-  }
-  Serial.println("\\nIP: " + WiFi.localIP().toString());
-  
-  ws.begin();
-  ws.onEvent(wsEvent);
-}
-
-void wsEvent(uint8_t num, WStype_t type,
-             uint8_t* payload, size_t len) {
-  if (type == WStype_TEXT) {
-    StaticJsonDocument<256> doc;
-    if (!deserializeJson(doc, payload, len)) {
-      if (doc.containsKey("temperature"))
-        setTemp = doc["temperature"];
-      if (doc.containsKey("ventilation"))
-        setVent = doc["ventilation"];
-      if (doc.containsKey("motor_speed"))
-        motorSpeedWeb = doc["motor_speed"];
-    }
-  }
-}
-
-int calculateRPM(int joystickY) {
-  int diff = abs(joystickY - JOYSTICK_CENTER);
-  if (diff <= JOYSTICK_DEADZONE) return 0;
-  int adjusted = diff - JOYSTICK_DEADZONE;
-  int maxAdjusted = 2048 - JOYSTICK_DEADZONE;
-  return map(adjusted, 0, maxAdjusted, 0, MAX_RPM);
-}
-
-void loop() {
-  ws.loop();
-  int joyX = analogRead(JOY_X);
-  int joyY = analogRead(JOY_Y);
-  
-  int motorRPM;
-  if (motorSpeedWeb >= 0) {
-    motorRPM = map(motorSpeedWeb, 0, 100, 0, MAX_RPM);
-  } else {
-    motorRPM = calculateRPM(joyY);
-  }
-  
-  int motorPWM = map(motorRPM, 0, MAX_RPM, 0, 255);
-  ledcWrite(MOTOR_PIN, motorPWM);
-
-  static unsigned long last = 0, lastDHT = 0;
-  static float tempDHT = 25, humDHT = 50;
-  
-  if (millis() - lastDHT > 2000) {
-    lastDHT = millis();
-    float t = dht.readTemperature();
-    float h = dht.readHumidity();
-    if (!isnan(t)) tempDHT = t;
-    if (!isnan(h)) humDHT = h;
-  }
-  
-  if (millis() - last > 500) {
-    last = millis();
-    StaticJsonDocument<256> doc;
-    doc["joystick_x"] = joyX;
-    doc["joystick_y"] = joyY;
-    doc["temp_dht"] = tempDHT;
-    doc["humedad_dht"] = humDHT;
-    doc["motor_rpm"] = motorRPM;
-    String out;
-    serializeJson(doc, out);
-    ws.broadcastTXT(out);
-  }
-}`;
-
-// ================================================================
-//  INICIALIZACIÓN
-// ================================================================
-function init() {
-  initThree();
-  animateThree();
-  initCharts();
-  renderEquations();
-  document.getElementById('espPre').textContent = ESP32_CODE;
-  setStatus('sim');
-  S.simulating = true;
-  dataLoop();
-}
-
-window.addEventListener('DOMContentLoaded', init);
-</script>
+    <script>
+        // ==========================================
+        // 1. CONFIGURACIÓN DE KATEX (FÓRMULAS)
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", function() {
+            katex.render("\\dot{\\gamma} = \\frac{v}{h}", document.getElementById("formula-shear"), { displayMode: true });
+            katex.render("M(t) = M_0 \\cdot e^{-k \\cdot t}", document.getElementById("formula-moisture"), { displayMode: true });
+            katex.render("P \\approx \\mu \\cdot \\dot{\\gamma}^2 \\cdot V", document.getElementById("formula-power"), { displayMode: true });
+        });
+
+        // ==========================================
+        // 2. THREE.JS - MODELO 3D DE LA CONCHADORA
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111827);
+        
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(5, 5, 5);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        // Luces
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 10, 7);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // Materiales
+        const steelMaterial = new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.8, roughness: 0.2 });
+        const chocolateMaterial = new THREE.MeshStandardMaterial({ color: 0x3e2723, metalness: 0.1, roughness: 0.6 });
+        const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x8d99ae, metalness: 0.1, roughness: 0.9 });
+
+        // Base de la máquina
+        const baseGeo = new THREE.BoxGeometry(4, 0.5, 4);
+        const base = new THREE.Mesh(baseGeo, steelMaterial);
+        base.position.y = -1.5;
+        base.receiveShadow = true;
+        scene.add(base);
+
+        // Tambor (Concha)
+        const drumGeo = new THREE.CylinderGeometry(2, 2, 2.5, 32, 1, true);
+        const drum = new THREE.Mesh(drumGeo, new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.6, roughness: 0.3, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }));
+        drum.position.y = 0;
+        drum.castShadow = true;
+        scene.add(drum);
+
+        // Masa de chocolate (simulada)
+        const chocoGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.8, 32);
+        const chocolate = new THREE.Mesh(chocoGeo, chocolateMaterial);
+        chocolate.position.y = -0.8;
+        scene.add(chocolate);
+
+        // Rodillos (Wet Grinder)
+        const rollerGroup = new THREE.Group();
+        scene.add(rollerGroup);
+
+        const rollerGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.8, 16);
+        const roller1 = new THREE.Mesh(rollerGeo, stoneMaterial);
+        roller1.rotation.z = Math.PI / 2;
+        roller1.position.x = 1.2;
+        roller1.position.y = -0.5;
+        
+        const roller2 = new THREE.Mesh(rollerGeo, stoneMaterial);
+        roller2.rotation.z = Math.PI / 2;
+        roller2.position.x = -1.2;
+        roller2.position.y = -0.5;
+
+        rollerGroup.add(roller1);
+        rollerGroup.add(roller2);
+
+        // Animación 3D
+        let targetRPM = 0;
+        let currentRotationSpeed = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Suavizado de la velocidad de rotación
+            currentRotationSpeed += (targetRPM - currentRotationSpeed) * 0.05;
+            
+            // Rotación de los rodillos sobre su propio eje
+            roller1.rotation.x += currentRotationSpeed * 0.01;
+            roller2.rotation.x += currentRotationSpeed * 0.01;
+            
+            // Rotación orbital de los rodillos alrededor del centro (simulando el movimiento del tambor o brazo)
+            rollerGroup.rotation.y += currentRotationSpeed * 0.002;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // ==========================================
+        // 3. CHART.JS - GRÁFICOS EN TIEMPO REAL
+        // ==========================================
+        const ctx = document.getElementById('telemetryChart').getContext('2d');
+        const maxDataPoints = 50;
+        
+        const telemetryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(maxDataPoints).fill(''),
+                datasets: [
+                    { label: 'Temp (°C)', data: Array(maxDataPoints).fill(null), borderColor: '#f87171', borderWidth: 2, tension: 0.4, yAxisID: 'y' },
+                    { label: 'Humedad (%)', data: Array(maxDataPoints).fill(null), borderColor: '#60a5fa', borderWidth: 2, tension: 0.4, yAxisID: 'y1' },
+                    { label: 'RPM', data: Array(maxDataPoints).fill(null), borderColor: '#fbbf24', borderWidth: 2, tension: 0.4, yAxisID: 'y2' }
+                ]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'Temp (°C)'}, min: 20, max: 100 },
+                    y1: { type: 'linear', display: true, position: 'right', title: {display: true, text: 'Humedad (%)'}, min: 0, max: 100, grid: { drawOnChartArea: false } },
+                    y2: { type: 'linear', display: false, min: 0, max: 35 }
+                }
+            }
+        });
+
+        function updateChart(temp, hum, rpm) {
+            const data = telemetryChart.data;
+            data.labels.push(new Date().toLocaleTimeString());
+            data.datasets[0].data.push(temp);
+            data.datasets[1].data.push(hum);
+            data.datasets[2].data.push(rpm);
+
+            if (data.labels.length > maxDataPoints) {
+                data.labels.shift();
+                data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            telemetryChart.update();
+        }
+
+        // ==========================================
+        // 4. WEBSOCKET & LÓGICA DE CONTROL
+        // ==========================================
+        let ws;
+        let isConnected = false;
+
+        function connectWS() {
+            if (ws && isConnected) {
+                ws.close();
+            }
+            const ip = document.getElementById('esp32-ip').value;
+            const url = `ws://${ip}:81`;
+            console.log("Conectando a:", url);
+            
+            ws = new WebSocket(url);
+            
+            ws.onopen = () => {
+                isConnected = true;
+                console.log("WebSocket conectado");
+                // Enviar estado inicial de sliders
+                updateParam('temperature', document.getElementById('slider-temp').value);
+                updateParam('ventilation', document.getElementById('slider-vent').value);
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    // Actualizar UI
+                    document.getElementById('disp-rpm').innerText = data.motor_rpm;
+                    document.getElementById('disp-temp').innerText = data.temp_dht.toFixed(1) + " °C";
+                    document.getElementById('disp-hum').innerText = data.humedad_dht.toFixed(1) + " %";
+                    
+                    // Actualizar velocidad 3D
+                    targetRPM = data.motor_rpm;
+                    
+                    // Actualizar gráfico
+                    updateChart(data.temp_dht, data.humedad_dht, data.motor_rpm);
+                    
+                } catch (e) {
+                    console.error("Error al parsear mensaje:", e);
+                }
+            };
+            
+            ws.onclose = () => {
+                isConnected = false;
+                console.log("WebSocket desconectado");
+            };
+            
+            ws.onerror = (error) => {
+                console.error("Error de WebSocket:", error);
+                alert("No se pudo conectar al ESP32. Verifica la IP y que esté en la misma red WiFi.");
+            };
+        }
+
+        function updateParam(key, value) {
+            if (key === 'temperature') document.getElementById('val-temp').innerText = value;
+            if (key === 'ventilation') document.getElementById('val-vent').innerText = value;
+            
+            if (isConnected && ws.readyState === WebSocket.OPEN) {
+                const payload = {};
+                payload[key] = parseFloat(value);
+                ws.send(JSON.stringify(payload));
+            }
+        }
+
+        function updateMotor(value) {
+            const val = parseInt(value);
+            if (val === -1) {
+                document.getElementById('val-motor').innerText = "Auto (Joystick)";
+            } else {
+                document.getElementById('val-motor').innerText = val + " %";
+            }
+            
+            if (isConnected && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ motor_speed: val }));
+            }
+        }
+
+        // Reconexión automática en caso de pérdida
+        setInterval(() => {
+            if (!isConnected && ws && ws.readyState === WebSocket.CLOSED) {
+                console.log("Intentando reconectar...");
+                connectWS();
+            }
+        }, 5000);
+    </script>
 </body>
 </html>
