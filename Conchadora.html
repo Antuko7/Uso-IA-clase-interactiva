@@ -276,13 +276,13 @@ function buildConche() {
     color: 0xdddddd, roughness: 0.15, metalness: 0.95 
   });
   const darkSteelMat = new THREE.MeshStandardMaterial({ 
-    color: 0x666677, roughness: 0.4, metalness: 0.8 
+    color: 0x444455, roughness: 0.4, metalness: 0.8 
   });
   const redMat = new THREE.MeshStandardMaterial({ 
     color: 0xcc2222, roughness: 0.4, metalness: 0.3 
   });
   const graniteMat = new THREE.MeshStandardMaterial({ 
-    color: 0x888888, roughness: 0.85, metalness: 0.05 
+    color: 0x999999, roughness: 0.9, metalness: 0.0 
   });
   const chocoMat = new THREE.MeshStandardMaterial({ 
     color: 0x3E1C00, roughness: 0.3, metalness: 0.1 
@@ -312,7 +312,7 @@ function buildConche() {
   baseRim.position.y = 0.05;
   machine.add(baseRim);
 
-  // Borde superior de la base (unión con el tambor)
+  // Borde superior de la base
   const baseTopRimGeo = new THREE.TorusGeometry(1.8, 0.05, 8, 32);
   const baseTopRim = new THREE.Mesh(baseTopRimGeo, darkSteelMat);
   baseTopRim.rotation.x = Math.PI / 2;
@@ -329,13 +329,6 @@ function buildConche() {
   const switchBtn = new THREE.Mesh(switchBtnGeo, new THREE.MeshStandardMaterial({ color: 0x222222 }));
   switchBtn.position.set(0, 0.35, 1.9);
   machine.add(switchBtn);
-
-  // Etiqueta "Premier"
-  const labelGeo = new THREE.PlaneGeometry(0.6, 0.15);
-  const labelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x333333 });
-  const label = new THREE.Mesh(labelGeo, labelMat);
-  label.position.set(0, 0.2, 1.86);
-  machine.add(label);
 
   // === ASAS ROJAS LATERALES ===
   const handleGeo = new THREE.TorusGeometry(0.2, 0.06, 8, 16, Math.PI);
@@ -399,17 +392,16 @@ function buildConche() {
   machine.add(handleTop);
 
   // === BRAZOS Y RODILLOS DE GRANITO ===
-  // Cada rodillo está en un grupo que orbita alrededor del eje central
   const rollerRadius = 0.35;
   const rollerHeight = 1.2;
-  const orbitRadius = 0.9;  // distancia del centro al rodillo
+  const orbitRadius = 0.9;
 
   for (let i = 0; i < 2; i++) {
-    const angle = (i * Math.PI);  // 0 y 180 grados (opuestos)
+    const angle = (i * Math.PI);
     
     // Grupo que orbita
     const orbitGroup = new THREE.Group();
-    orbitGroup.position.y = 1.6;  // altura del centro del rodillo
+    orbitGroup.position.y = 1.6;
     
     // Brazo que conecta el eje al rodillo
     const armGeo = new THREE.BoxGeometry(orbitRadius, 0.15, 0.15);
@@ -418,7 +410,7 @@ function buildConche() {
     arm.castShadow = true;
     orbitGroup.add(arm);
 
-    // Rodillo de granito (cilindro vertical)
+    // ✅ RODILLO DE GRANITO - Cilindro VERTICAL bien definido
     const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerHeight, 24);
     const roller = new THREE.Mesh(rollerGeo, graniteMat);
     roller.position.x = orbitRadius;
@@ -426,11 +418,19 @@ function buildConche() {
     orbitGroup.add(roller);
     rollerMeshes.push(roller);
 
-    // Eje pequeño del rodillo
-    const axleGeo = new THREE.CylinderGeometry(0.05, 0.05, rollerHeight + 0.3, 8);
-    const axle = new THREE.Mesh(axleGeo, darkSteelMat);
+    // ✅ Eje del rodillo (visible, para que se note la rotación)
+    const axleGeo = new THREE.CylinderGeometry(0.08, 0.08, rollerHeight + 0.4, 12);
+    const axleMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.3, metalness: 0.7 });
+    const axle = new THREE.Mesh(axleGeo, axleMat);
     axle.position.x = orbitRadius;
     orbitGroup.add(axle);
+
+    // ✅ Marca en el rodillo para visualizar la rotación
+    const markGeo = new THREE.BoxGeometry(0.05, rollerHeight * 0.8, 0.02);
+    const markMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const mark = new THREE.Mesh(markGeo, markMat);
+    mark.position.set(orbitRadius + rollerRadius - 0.01, 0, 0);
+    orbitGroup.add(mark);
 
     // Posicionar el grupo en su ángulo inicial
     orbitGroup.rotation.y = angle;
@@ -457,20 +457,20 @@ function animateThree() {
   requestAnimationFrame(animateThree);
   controls.update();
 
-  // Animación de los rodillos
   const rpm = S.actSpeed;
-  const orbitSpeed = (rpm / 60) * 0.5;     // velocidad de órbita
-  const spinSpeed = (rpm / 60) * 2.0;      // velocidad de rotación propia (más rápida)
+  const orbitSpeed = (rpm / 60) * 0.5;
+  const spinSpeed = (rpm / 60) * 2.0;
 
-  // Rotar los grupos de órbita (brazo + rodillo giran alrededor del eje central)
-  orbitAngle += orbitSpeed * 0.016;  // ~60fps
+  // Rotar los grupos de órbita
+  orbitAngle += orbitSpeed * 0.016;
   rollerGroups.forEach((group, i) => {
     group.rotation.y = orbitAngle + (i * Math.PI);
   });
 
-  // Rotar cada rodillo sobre su propio eje vertical
+  // ✅ ROTACIÓN CORRECTA: usar rotateOnAxis para rotar sobre el eje Y local
+  const yAxis = new THREE.Vector3(0, 1, 0);
   rollerMeshes.forEach(roller => {
-    roller.rotation.y += spinSpeed * 0.016;
+    roller.rotateOnAxis(yAxis, spinSpeed * 0.016);
   });
 
   // Color del chocolate según temperatura
