@@ -5,14 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Conchadora de Chocolate — Panel de Control</title>
 
-<!-- Three.js r128 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-<!-- Chart.js 4 -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
-<!-- KaTeX -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
@@ -20,8 +15,7 @@
 :root {
   --bg: #0d1117; --panel: #161b22; --border: #30363d;
   --text: #c9d1d9; --text-dim: #8b949e; --accent: #d4a843;
-  --choco: #8B4513; --copper: #cd7f32; --ok: #3fb950;
-  --warn: #d29922; --err: #f85149; --blue: #58a6ff;
+  --ok: #3fb950; --warn: #d29922; --err: #f85149; --blue: #58a6ff;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
@@ -30,14 +24,12 @@ h1,h2,h3 { color:var(--accent); }
 .header { display:flex; align-items:center; justify-content:space-between; padding:10px 20px;
   background:var(--panel); border-bottom:2px solid var(--accent); flex-wrap:wrap; gap:8px; }
 .header h1 { font-size:1.2rem; display:flex; align-items:center; gap:8px; }
-.header h1 span.icon { font-size:1.5rem; }
 .conn-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .conn-bar input { background:#0d1117; border:1px solid var(--border); color:var(--text);
   padding:5px 10px; border-radius:6px; width:140px; font-size:.85rem; }
 .conn-bar button { padding:5px 14px; border:none; border-radius:6px; cursor:pointer;
   font-weight:600; font-size:.85rem; transition:.2s; }
 .btn-connect { background:var(--ok); color:#000; }
-.btn-connect:hover { filter:brightness(1.2); }
 .btn-disconnect { background:var(--err); color:#fff; }
 .btn-sim { background:var(--warn); color:#000; }
 .status-dot { width:12px; height:12px; border-radius:50%; display:inline-block; }
@@ -48,7 +40,7 @@ h1,h2,h3 { color:var(--accent); }
 .dashboard { display:grid; grid-template-columns:1fr 380px; grid-template-rows:auto auto auto;
   gap:12px; padding:12px; max-width:1600px; margin:0 auto; }
 .panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; }
-.panel h2 { font-size:1rem; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.panel h2 { font-size:1rem; margin-bottom:10px; }
 
 .viewport { grid-row:1/3; min-height:480px; position:relative; }
 #three-canvas { width:100%; height:100%; border-radius:8px; display:block; }
@@ -64,20 +56,22 @@ input[type=range] { -webkit-appearance:none; width:100%; height:6px; border-radi
   background:var(--border); outline:none; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px;
   border-radius:50%; background:var(--accent); cursor:pointer; border:2px solid #000; }
+
 .joystick-display { background:#0d1117; border:1px solid var(--border); border-radius:8px;
-  padding:10px; text-align:center; }
-.joystick-display .val { font-size:1.8rem; font-weight:700; color:var(--accent); }
+  padding:12px; text-align:center; }
+.joystick-display .val { font-size:2rem; font-weight:700; color:var(--accent); }
 .joystick-display .lbl { font-size:.75rem; color:var(--text-dim); }
+.joystick-display .sub { font-size:.7rem; color:var(--text-dim); margin-top:4px; }
+
 .param-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.param-card { background:#0d1117; border:1px solid var(--border); border-radius:8px;
-  padding:8px; text-align:center; }
+.param-card { background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:8px; text-align:center; }
 .param-card .val { font-size:1.3rem; font-weight:700; }
 .param-card .lbl { font-size:.7rem; color:var(--text-dim); }
 .param-card.temp .val { color:#f78166; }
 .param-card.hum .val { color:var(--blue); }
 .param-card.speed .val { color:var(--accent); }
 .param-card.vent .val { color:var(--ok); }
-.param-card.visc .val { color:var(--copper); }
+.param-card.visc .val { color:#cd7f32; }
 
 .charts-area { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
 .chart-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px; }
@@ -87,7 +81,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 .equations { grid-column:1/-1; }
 .eq-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px; }
 .eq-card { background:#0d1117; border:1px solid var(--border); border-radius:8px; padding:12px; }
-.eq-card h3 { font-size:.85rem; margin-bottom:6px; color:var(--copper); }
+.eq-card h3 { font-size:.85rem; margin-bottom:6px; color:#cd7f32; }
 .eq-card .katex-display { margin:6px 0; }
 .eq-card p { font-size:.78rem; color:var(--text-dim); margin-top:4px; }
 
@@ -98,22 +92,19 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
 .esp-code pre { font-size:.72rem; color:var(--ok); white-space:pre-wrap; word-break:break-all; }
 .esp-code.show { display:block; }
 
-@media(max-width:900px){
-  .dashboard { grid-template-columns:1fr; }
-  .viewport { grid-row:auto; min-height:350px; }
-}
+@media(max-width:900px){ .dashboard { grid-template-columns:1fr; } .viewport { grid-row:auto; min-height:350px; } }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1><span class="icon"></span> Conchadora de Chocolate — Panel de Control</h1>
+  <h1><span>🍫</span> Conchadora de Chocolate — Panel de Control</h1>
   <div class="conn-bar">
     <span class="status-dot off" id="statusDot"></span>
     <span id="statusText" style="font-size:.8rem">Desconectado</span>
     <input id="espIp" type="text" value="192.168.43.100" placeholder="IP del ESP32">
     <button class="btn-connect" id="btnConn" onclick="toggleConnection()">Conectar</button>
-    <button class="btn-sim" onclick="toggleSim()">⚡ Simulación</button>
+    <button class="btn-sim" onclick="toggleSim()"> Simulación</button>
   </div>
 </div>
 
@@ -129,7 +120,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
     <h2>🎛️ Parámetros de Proceso</h2>
 
     <div class="slider-group">
-      <label>️ Temperatura objetivo <b id="tempVal">60 °C</b></label>
+      <label>🌡️ Temperatura objetivo <b id="tempVal">60 °C</b></label>
       <input type="range" id="sliderTemp" min="40" max="90" value="60" oninput="onSlider()">
     </div>
     <div class="slider-group">
@@ -143,14 +134,15 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
     <div class="slider-group">
       <label>⚙️ Control manual del motor <b id="motorVal">0 %</b></label>
       <input type="range" id="sliderMotor" min="0" max="100" value="0" oninput="onSlider()">
-      <small>Desliza para controlar el motor desde la web (anula el joystick)</small>
+      <small>Desliza para controlar el motor desde la web (anula el joystick físico)</small>
     </div>
 
-    <h2 style="margin-top:8px">🕹️ Joystick ESP32</h2>
+    <h2 style="margin-top:8px">🕹️ Joystick (modo crucero)</h2>
     <div class="joystick-display">
       <div class="val" id="joystickRPM">0</div>
-      <div class="lbl">RPM Motor (joystick Y / control manual)</div>
-      <div style="font-size:.7rem;color:var(--text-dim);margin-top:4px">Zona muerta: ±200 (centro)</div>
+      <div class="lbl">RPM Motor (velocidad actual)</div>
+      <div class="sub">Setpoint: <span id="joystickSetpoint">0</span> RPM</div>
+      <div class="sub">Joystick físico: <span id="joystickRaw">2048</span></div>
     </div>
     <div class="param-grid" style="margin-top:6px">
       <div class="param-card temp"><div class="val" id="pTemp">25.0</div><div class="lbl">Temp. DHT22 (°C)</div></div>
@@ -168,10 +160,10 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
   </div>
 
   <div class="charts-area">
-    <div class="chart-box"><h3>🌡️ Temperatura DHT22 (°C)</h3><canvas id="chartTemp"></canvas></div>
-    <div class="chart-box"><h3> Humedad DHT22 (%)</h3><canvas id="chartHum"></canvas></div>
+    <div class="chart-box"><h3>️ Temperatura DHT22 (°C)</h3><canvas id="chartTemp"></canvas></div>
+    <div class="chart-box"><h3>💧 Humedad DHT22 (%)</h3><canvas id="chartHum"></canvas></div>
     <div class="chart-box"><h3>️ Velocidad Motor (RPM)</h3><canvas id="chartSpeed"></canvas></div>
-    <div class="chart-box"><h3> Ventilación (%)</h3><canvas id="chartVent"></canvas></div>
+    <div class="chart-box"><h3>💨 Ventilación (%)</h3><canvas id="chartVent"></canvas></div>
     <div class="chart-box"><h3>🧪 Viscosidad (Pa·s)</h3><canvas id="chartVisc"></canvas></div>
   </div>
 
@@ -195,8 +187,9 @@ const CFG = {
   MOISTURE_INIT: 1.5,
   KD: 0.008,
   JOYSTICK_CENTER: 2048,
-  JOYSTICK_DEADZONE: 200,
-  MAX_RPM: 30
+  JOYSTICK_DEADZONE: 150,
+  MAX_RPM: 30,
+  SMOOTHING: 0.08  // Suavizado de velocidad (menor = más suave)
 };
 
 // ================================================================
@@ -207,6 +200,7 @@ const S = {
   setTemp: 60, setTime: 48, setVent: 50, setMotor: 0,
   actTemp: 25, actHum: 50, actSpeed: 0, actVent: 50, actVisc: 0,
   joystickX: 2048, joystickY: 2048,
+  joystickSetpoint: 0,  // Velocidad objetivo del joystick
   elapsed: 0, moisture: CFG.MOISTURE_INIT
 };
 
@@ -214,8 +208,8 @@ const S = {
 //  THREE.JS — ESCENA 3D
 // ================================================================
 let scene, camera, renderer, controls;
-let rollerGroups = [];   // grupos que orbitan (brazo + rodillo)
-let rollerMeshes = [];   // solo los rodillos (para rotación propia)
+let rollerGroups = [];
+let rollerMeshes = [];
 let chocolateMesh;
 let orbitAngle = 0;
 
@@ -241,7 +235,6 @@ function initThree() {
   controls.enableDamping = true;
   controls.target.set(0, 2, 0);
 
-  // Luces
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
   const dir = new THREE.DirectionalLight(0xffffff, 1.0);
   dir.position.set(5, 10, 5);
@@ -252,7 +245,6 @@ function initThree() {
   pt.position.set(-3, 4, 3);
   scene.add(pt);
 
-  // Suelo
   const floorGeo = new THREE.PlaneGeometry(30, 30);
   const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.9 });
   const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -271,70 +263,44 @@ function initThree() {
 }
 
 function buildConche() {
-  // === MATERIALES ===
-  const steelMat = new THREE.MeshStandardMaterial({ 
-    color: 0xe0e0e0, roughness: 0.1, metalness: 0.95 
-  });
-  const darkSteelMat = new THREE.MeshStandardMaterial({ 
-    color: 0x555566, roughness: 0.3, metalness: 0.8 
-  });
-  const redMat = new THREE.MeshStandardMaterial({ 
-    color: 0xcc2222, roughness: 0.4, metalness: 0.3 
-  });
-  const graniteMat = new THREE.MeshStandardMaterial({ 
-    color: 0x777777, roughness: 0.95, metalness: 0.0 
-  });
-  const chocoMat = new THREE.MeshStandardMaterial({ 
-    color: 0x3E1C00, roughness: 0.25, metalness: 0.05 
-  });
-  const glassMat = new THREE.MeshStandardMaterial({ 
-    color: 0xaaccff, roughness: 0.05, metalness: 0.1, 
-    transparent: true, opacity: 0.2 
-  });
-  const blackMat = new THREE.MeshStandardMaterial({ 
-    color: 0x111111, roughness: 0.8, metalness: 0.2 
-  });
-  const whitePlasticMat = new THREE.MeshStandardMaterial({ 
-    color: 0xeeeeee, roughness: 0.5, metalness: 0.1 
-  });
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.15, metalness: 0.95 });
+  const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x444455, roughness: 0.4, metalness: 0.8 });
+  const redMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.4, metalness: 0.3 });
+  const graniteMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.9, metalness: 0.0 });
+  const chocoMat = new THREE.MeshStandardMaterial({ color: 0x3E1C00, roughness: 0.3, metalness: 0.1 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0xaaccff, roughness: 0.1, metalness: 0.1, transparent: true, opacity: 0.25 });
+  const blackMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.2 });
+  const whitePlasticMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5, metalness: 0.1 });
 
   const machine = new THREE.Group();
 
-  // === BASE CON FRANJAS (plateado/rojo/plateado) ===
-  // Franja inferior plateada
-  const baseBottomGeo = new THREE.CylinderGeometry(1.85, 1.95, 0.2, 32);
-  const baseBottom = new THREE.Mesh(baseBottomGeo, steelMat);
-  baseBottom.position.y = 0.1;
-  baseBottom.castShadow = true;
-  machine.add(baseBottom);
+  // BASE
+  const baseGeo = new THREE.CylinderGeometry(1.8, 1.9, 0.6, 32);
+  const base = new THREE.Mesh(baseGeo, redMat);
+  base.position.y = 0.3;
+  base.castShadow = true;
+  machine.add(base);
 
-  // Franja central roja
-  const baseMiddleGeo = new THREE.CylinderGeometry(1.82, 1.82, 0.35, 32);
-  const baseMiddle = new THREE.Mesh(baseMiddleGeo, redMat);
-  baseMiddle.position.y = 0.375;
-  baseMiddle.castShadow = true;
-  machine.add(baseMiddle);
+  const baseRimGeo = new THREE.TorusGeometry(1.9, 0.05, 8, 32);
+  const baseRim = new THREE.Mesh(baseRimGeo, darkSteelMat);
+  baseRim.rotation.x = Math.PI / 2;
+  baseRim.position.y = 0.05;
+  machine.add(baseRim);
 
-  // Franja superior plateada
-  const baseTopGeo = new THREE.CylinderGeometry(1.82, 1.82, 0.2, 32);
-  const baseTop = new THREE.Mesh(baseTopGeo, steelMat);
-  baseTop.position.y = 0.65;
-  baseTop.castShadow = true;
-  machine.add(baseTop);
+  const baseTopRimGeo = new THREE.TorusGeometry(1.8, 0.05, 8, 32);
+  const baseTopRim = new THREE.Mesh(baseTopRimGeo, darkSteelMat);
+  baseTopRim.rotation.x = Math.PI / 2;
+  baseTopRim.position.y = 0.6;
+  machine.add(baseTopRim);
 
-  // Switch ON/OFF
-  const switchPlateGeo = new THREE.BoxGeometry(0.5, 0.3, 0.05);
+  // Switch
+  const switchPlateGeo = new THREE.BoxGeometry(0.4, 0.25, 0.08);
   const switchPlate = new THREE.Mesh(switchPlateGeo, blackMat);
   switchPlate.position.set(0, 0.35, 1.85);
   machine.add(switchPlate);
 
-  const switchBtnGeo = new THREE.BoxGeometry(0.2, 0.15, 0.03);
-  const switchBtn = new THREE.Mesh(switchBtnGeo, new THREE.MeshStandardMaterial({ color: 0x333333 }));
-  switchBtn.position.set(0, 0.35, 1.88);
-  machine.add(switchBtn);
-
-  // === ASAS ROJAS LATERALES ===
-  const handleGeo = new THREE.TorusGeometry(0.25, 0.08, 8, 16, Math.PI);
+  // Asas rojas
+  const handleGeo = new THREE.TorusGeometry(0.2, 0.06, 8, 16, Math.PI);
   [-1, 1].forEach(side => {
     const handle = new THREE.Mesh(handleGeo, redMat);
     handle.position.set(side * 1.9, 0.4, 0);
@@ -343,74 +309,68 @@ function buildConche() {
     machine.add(handle);
   });
 
-  // === TAMBOR DE ACERO INOXIDABLE ===
-  const drumGeo = new THREE.CylinderGeometry(1.75, 1.75, 2.0, 32, 1, true);
+  // TAMBOR
+  const drumGeo = new THREE.CylinderGeometry(1.7, 1.7, 2.2, 32, 1, true);
   const drum = new THREE.Mesh(drumGeo, steelMat);
-  drum.position.y = 1.65;
+  drum.position.y = 1.7;
   drum.castShadow = true;
   machine.add(drum);
 
-  // Borde superior del tambor (anillo grueso)
-  const drumRimGeo = new THREE.TorusGeometry(1.75, 0.08, 8, 32);
-  const drumRim = new THREE.Mesh(drumRimGeo, steelMat);
+  const drumRimGeo = new THREE.TorusGeometry(1.7, 0.06, 8, 32);
+  const drumRim = new THREE.Mesh(drumRimGeo, darkSteelMat);
   drumRim.rotation.x = Math.PI / 2;
-  drumRim.position.y = 2.65;
+  drumRim.position.y = 2.8;
   machine.add(drumRim);
 
-  // === CHOCOLATE (llena casi todo el fondo) ===
+  const drumRimBot = drumRim.clone();
+  drumRimBot.position.y = 0.6;
+  machine.add(drumRimBot);
+
+  // CHOCOLATE
   const chocoGeo = new THREE.CylinderGeometry(1.6, 1.6, 0.8, 32);
   chocolateMesh = new THREE.Mesh(chocoGeo, chocoMat);
   chocolateMesh.position.y = 1.0;
   machine.add(chocolateMesh);
 
-  // Superficie del chocolate
   const chocoTopGeo = new THREE.CircleGeometry(1.6, 32);
   const chocoTop = new THREE.Mesh(chocoTopGeo, chocoMat);
   chocoTop.rotation.x = -Math.PI / 2;
   chocoTop.position.y = 1.4;
   machine.add(chocoTop);
 
-  // === EJE CENTRAL CON FORMA DE "T" ===
-  // Poste vertical
+  // EJE CENTRAL
   const shaftGeo = new THREE.CylinderGeometry(0.15, 0.15, 1.8, 16);
   const shaft = new THREE.Mesh(shaftGeo, whitePlasticMat);
   shaft.position.y = 2.1;
   shaft.castShadow = true;
   machine.add(shaft);
 
-  // Cabezal superior (más ancho, como hongo)
   const headGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 16);
   const head = new THREE.Mesh(headGeo, whitePlasticMat);
   head.position.y = 3.0;
-  head.castShadow = true;
   machine.add(head);
 
-  // Detalle superior del cabezal (círculo pequeño)
   const headTopGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 16);
   const headTop = new THREE.Mesh(headTopGeo, darkSteelMat);
   headTop.position.y = 3.25;
   machine.add(headTop);
 
-  // === BRAZOS Y RODILLOS DE GRANITO ===
-  // ✅ Rodillos MÁS GRANDES y MÁS JUNTOS (como en la foto)
-  const rollerRadius = 0.5;      // Antes 0.35
-  const rollerHeight = 1.4;      // Antes 1.2
-  const orbitRadius = 0.55;      // Antes 0.9 (más cerca del centro)
+  // BRAZOS Y RODILLOS
+  const rollerRadius = 0.5;
+  const rollerHeight = 1.4;
+  const orbitRadius = 0.55;
 
   for (let i = 0; i < 2; i++) {
     const angle = (i * Math.PI);
-    
     const orbitGroup = new THREE.Group();
     orbitGroup.position.y = 1.5;
-    
-    // ✅ Brazo corto que conecta el eje al rodillo
+
     const armGeo = new THREE.BoxGeometry(orbitRadius, 0.2, 0.2);
     const arm = new THREE.Mesh(armGeo, whitePlasticMat);
     arm.position.x = orbitRadius / 2;
     arm.castShadow = true;
     orbitGroup.add(arm);
 
-    // ✅ RODILLO DE GRANITO GRANDE
     const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerHeight, 24);
     const roller = new THREE.Mesh(rollerGeo, graniteMat);
     roller.position.x = orbitRadius;
@@ -418,13 +378,12 @@ function buildConche() {
     orbitGroup.add(roller);
     rollerMeshes.push(roller);
 
-    // ✅ Eje del rodillo (visible arriba y abajo)
     const axleGeo = new THREE.CylinderGeometry(0.06, 0.06, rollerHeight + 0.3, 8);
     const axle = new THREE.Mesh(axleGeo, darkSteelMat);
     axle.position.x = orbitRadius;
     orbitGroup.add(axle);
 
-    // ✅ ASAS METÁLICAS en los extremos del rodillo (como en la foto)
+    // Asas metálicas en los extremos
     const handleRingGeo = new THREE.TorusGeometry(0.12, 0.03, 8, 16);
     [rollerHeight/2 + 0.1, -rollerHeight/2 - 0.1].forEach(yOffset => {
       const handleRing = new THREE.Mesh(handleRingGeo, darkSteelMat);
@@ -433,7 +392,7 @@ function buildConche() {
       orbitGroup.add(handleRing);
     });
 
-    // ✅ Marca en el rodillo para visualizar rotación
+    // Marca para visualizar rotación
     const markGeo = new THREE.BoxGeometry(0.04, rollerHeight * 0.7, 0.02);
     const markMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
     const mark = new THREE.Mesh(markGeo, markMat);
@@ -445,13 +404,12 @@ function buildConche() {
     rollerGroups.push(orbitGroup);
   }
 
-  // === TAPA TRANSPARENTES ===
+  // TAPA
   const lidGeo = new THREE.CylinderGeometry(1.78, 1.78, 0.1, 32);
   const lid = new THREE.Mesh(lidGeo, glassMat);
   lid.position.y = 2.7;
   machine.add(lid);
 
-  // Asa de la tapa
   const lidHandleGeo = new THREE.BoxGeometry(0.6, 0.12, 0.15);
   const lidHandle = new THREE.Mesh(lidHandleGeo, whitePlasticMat);
   lidHandle.position.y = 2.78;
@@ -459,6 +417,7 @@ function buildConche() {
 
   scene.add(machine);
 }
+
 function animateThree() {
   requestAnimationFrame(animateThree);
   controls.update();
@@ -467,19 +426,16 @@ function animateThree() {
   const orbitSpeed = (rpm / 60) * 0.5;
   const spinSpeed = (rpm / 60) * 2.0;
 
-  // Rotar los grupos de órbita
   orbitAngle += orbitSpeed * 0.016;
   rollerGroups.forEach((group, i) => {
     group.rotation.y = orbitAngle + (i * Math.PI);
   });
 
-  // ✅ ROTACIÓN CORRECTA: usar rotateOnAxis para rotar sobre el eje Y local
   const yAxis = new THREE.Vector3(0, 1, 0);
   rollerMeshes.forEach(roller => {
     roller.rotateOnAxis(yAxis, spinSpeed * 0.016);
   });
 
-  // Color del chocolate según temperatura
   if (chocolateMesh) {
     const t = Math.max(0, Math.min(1, (S.actTemp - 25) / 65));
     const r = 0.24 + t * 0.3;
@@ -506,7 +462,7 @@ function initCharts() {
     responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
     scales: {
       x: { display: true, grid: { color: '#21262d' }, ticks: { maxTicksLimit: 8 } },
-      y: { grid: { color: '#21262d' } }
+      y: { grid: { color: '#21262d' }, beginAtZero: false }
     },
     plugins: { legend: { display: false } },
     elements: { point: { radius: 0 }, line: { tension: 0.3, borderWidth: 2 } }
@@ -521,9 +477,9 @@ function initCharts() {
     });
   };
 
-  charts.temp = makeChart('chartTemp', 'Temperatura DHT22', '#f78166');
-  charts.hum = makeChart('chartHum', 'Humedad DHT22', '#58a6ff');
-  charts.speed = makeChart('chartSpeed', 'Motor RPM', '#d4a843');
+  charts.temp = makeChart('chartTemp', 'Temperatura', '#f78166');
+  charts.hum = makeChart('chartHum', 'Humedad', '#58a6ff');
+  charts.speed = makeChart('chartSpeed', 'RPM', '#d4a843');
   charts.vent = makeChart('chartVent', 'Ventilación', '#3fb950');
   charts.visc = makeChart('chartVisc', 'Viscosidad', '#cd7f32');
 }
@@ -571,6 +527,45 @@ function renderEquations() {
     grid.appendChild(card);
     katex.render(eq.tex, card.querySelector('.eq-tex'), { displayMode: true, throwOnError: false });
   });
+}
+
+// ================================================================
+//  LÓGICA JOYSTICK CRUCERO
+// ================================================================
+function calculateJoystickSetpoint(joyY) {
+  // joyY: 0 a 4095 (2048 = centro)
+  // Devuelve setpoint de 0 a MAX_RPM
+  
+  const diff = joyY - CFG.JOYSTICK_CENTER;
+  
+  // Zona muerta: si está cerca del centro, no cambia el setpoint
+  if (Math.abs(diff) < CFG.JOYSTICK_DEADZONE) {
+    return S.joystickSetpoint;  // Mantener valor anterior
+  }
+  
+  // Mapear la desviación a RPM (0 a MAX_RPM)
+  // Usamos el valor absoluto: más lejos del centro = más velocidad
+  const absDiff = Math.abs(diff);
+  const maxDiff = 2048 - CFG.JOYSTICK_DEADZONE;
+  const setpoint = (absDiff / maxDiff) * CFG.MAX_RPM;
+  
+  return Math.min(CFG.MAX_RPM, Math.max(0, setpoint));
+}
+
+function applyJoystickLogic() {
+  // Calcular setpoint desde joystick físico
+  const newSetpoint = calculateJoystickSetpoint(S.joystickY);
+  
+  // Si hay control manual desde web, tiene prioridad
+  if (S.setMotor > 0) {
+    S.joystickSetpoint = (S.setMotor / 100) * CFG.MAX_RPM;
+  } else {
+    S.joystickSetpoint = newSetpoint;
+  }
+  
+  // Suavizar la velocidad actual hacia el setpoint
+  const diff = S.joystickSetpoint - S.actSpeed;
+  S.actSpeed += diff * CFG.SMOOTHING;
 }
 
 // ================================================================
@@ -637,30 +632,31 @@ function toggleSim() {
 function simulateStep() {
   if (!S.simulating) return;
   const t = Date.now() * 0.001;
+  
+  // Simular joystick con zona muerta
   const baseValue = CFG.JOYSTICK_CENTER;
   const oscillation = Math.sin(t * 0.3) * 1500 + Math.sin(t * 0.7) * 400;
   S.joystickY = baseValue + oscillation;
   S.joystickX = baseValue + Math.cos(t * 0.2) * 500;
+  
+  // Aplicar lógica crucero
+  applyJoystickLogic();
 
-  const joyDiff = S.joystickY - CFG.JOYSTICK_CENTER;
-  let targetRPM = 0;
-  if (Math.abs(joyDiff) > CFG.JOYSTICK_DEADZONE) {
-    const adjustedValue = Math.abs(joyDiff) - CFG.JOYSTICK_DEADZONE;
-    const maxAdjusted = 2048 - CFG.JOYSTICK_DEADZONE;
-    targetRPM = (adjustedValue / maxAdjusted) * CFG.MAX_RPM;
-  }
-  S.actSpeed += (targetRPM - S.actSpeed) * 0.1;
-
+  // Temperatura
   const tau = 30;
   S.actTemp += ((S.setTemp - S.actTemp) / tau) + (Math.random() - 0.5) * 0.3;
+  
+  // Humedad
   const humTarget = 65 - (S.actVent * 0.3) - ((S.actTemp - 40) * 0.2);
   S.actHum += ((humTarget - S.actHum) * 0.05) + (Math.random() - 0.5) * 0.5;
   S.actHum = Math.max(20, Math.min(90, S.actHum));
+  
+  // Ventilación
   S.actVent += (S.setVent - S.actVent) * 0.15;
 
+  // Viscosidad
   const kd = CFG.KD * (S.actVent / 50) * Math.exp(0.03 * (S.actTemp - 50));
   S.moisture = CFG.MOISTURE_INIT * Math.exp(-kd * S.elapsed);
-
   const T_K = S.actTemp + 273.15;
   S.actVisc = CFG.A_ARRHENIUS * Math.exp(CFG.EA / (CFG.R_GAS * T_K));
   S.actVisc *= (1 + 0.5 * S.moisture);
@@ -694,28 +690,39 @@ function onSlider() {
 function dataLoop() {
   setInterval(() => {
     S.elapsed++;
-    if (S.simulating) simulateStep();
-    if (S.connected) {
+    
+    if (S.simulating) {
+      simulateStep();
+    } else if (S.connected) {
+      // Aplicar lógica crucero con joystick físico
+      applyJoystickLogic();
+      
+      // Calcular viscosidad localmente
       const T_K = S.actTemp + 273.15;
       S.actVisc = CFG.A_ARRHENIUS * Math.exp(CFG.EA / (CFG.R_GAS * T_K));
       S.actVent += (S.setVent - S.actVent) * 0.15;
     }
 
-    document.getElementById('joystickRPM').textContent = Math.round(S.actSpeed);
+    // ✅ Actualizar displays
+    document.getElementById('joystickRPM').textContent = S.actSpeed.toFixed(1);
+    document.getElementById('joystickSetpoint').textContent = S.joystickSetpoint.toFixed(1);
+    document.getElementById('joystickRaw').textContent = S.joystickY;
     document.getElementById('pTemp').textContent = S.actTemp.toFixed(1);
     document.getElementById('pHum').textContent = S.actHum.toFixed(1);
-    document.getElementById('pSpeed').textContent = Math.round(S.actSpeed);
+    document.getElementById('pSpeed').textContent = S.actSpeed.toFixed(1);
     document.getElementById('pVent').textContent = Math.round(S.actVent);
     document.getElementById('pVisc').textContent = S.actVisc.toFixed(2);
 
+    // ✅ Push charts (ahora sí se actualizan)
     const lbl = S.elapsed + 's';
     pushChart(charts.temp, lbl, +S.actTemp.toFixed(1));
     pushChart(charts.hum, lbl, +S.actHum.toFixed(1));
-    pushChart(charts.speed, lbl, Math.round(S.actSpeed));
+    pushChart(charts.speed, lbl, +S.actSpeed.toFixed(1));
     pushChart(charts.vent, lbl, Math.round(S.actVent));
     pushChart(charts.visc, lbl, +S.actVisc.toFixed(2));
   }, CFG.UPDATE_MS);
 }
+
 
 
 // ================================================================
